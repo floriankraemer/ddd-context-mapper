@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/flori/contextmap/context-map.schema.json",
+  "title": "DDD Context Map snapshot",
+  "description": "Export/import format for the ContextMap diagram (bounded contexts, relationships, layout, colors, view).",
+  "type": "object",
+  "required": ["version", "nodes", "links"],
+  "additionalProperties": true,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "Format version: 1 = legacy (optional node colors); 2 = always includes node and link colors on export.",
+      "enum": [1, 2]
+    },
+    "exportedAt": {
+      "type": "string",
+      "description": "ISO 8601 timestamp from Date.prototype.toISOString() when the file was written.",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T[0-9:.+-]+Z?$"
+    },
+    "view": {
+      "type": "object",
+      "description": "SVG pan/zoom transform (d3.zoom): scale k and translate x, y.",
+      "required": ["k", "x", "y"],
+      "additionalProperties": false,
+      "properties": {
+        "k": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Scale factor"
+        },
+        "x": { "type": "number", "description": "Translate X in screen space" },
+        "y": { "type": "number", "description": "Translate Y in screen space" }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "description": "Bounded contexts (ellipses on the map).",
+      "items": { "$ref": "#/definitions/node" }
+    },
+    "links": {
+      "type": "array",
+      "description": "Directed relationships between contexts.",
+      "items": { "$ref": "#/definitions/link" }
+    }
+  },
+  "definitions": {
+    "nodeId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Stable internal id (UUID or short code); used in link source/target."
+    },
+    "hexColor": {
+      "type": "string",
+      "description": "CSS hex color for fills/strokes (#rgb, #rrggbb, or #rrggbbaa).",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "label", "x", "y"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "$ref": "#/definitions/nodeId" },
+        "label": {
+          "type": "string",
+          "description": "Display text; may contain newline characters (\\n)."
+        },
+        "x": { "type": "number", "description": "Center X in diagram coordinates" },
+        "y": { "type": "number", "description": "Center Y in diagram coordinates" },
+        "backgroundColor": {
+          "$ref": "#/definitions/hexColor",
+          "description": "Ellipse fill (v2 export always sets this; v1 may omit)."
+        },
+        "textColor": {
+          "$ref": "#/definitions/hexColor",
+          "description": "Label fill (v2 export always sets this; v1 may omit)."
+        }
+      }
+    },
+    "link": {
+      "type": "object",
+      "required": ["source", "target"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/nodeId",
+          "description": "Downstream / From context id"
+        },
+        "target": {
+          "$ref": "#/definitions/nodeId",
+          "description": "Upstream / To context id"
+        },
+        "color": {
+          "$ref": "#/definitions/hexColor",
+          "description": "Connector and mid-label color (v2); default #000000 if omitted."
+        },
+        "stroke": {
+          "$ref": "#/definitions/hexColor",
+          "description": "Legacy alias for color (import only)."
+        },
+        "label": {
+          "type": "string",
+          "description": "e.g. Customer/Supplier, Shared Kernel, Partnership"
+        },
+        "sBox": {
+          "type": "string",
+          "description": "Source-end DDD box text (e.g. ACL, CONFORMIST, OHS / PL)"
+        },
+        "tBox": {
+          "type": "string",
+          "description": "Target-end DDD box text"
+        },
+        "sUD": {
+          "type": "string",
+          "enum": ["U", "D"],
+          "description": "Upstream/Downstream marker on source end"
+        },
+        "tUD": {
+          "type": "string",
+          "enum": ["U", "D"],
+          "description": "Upstream/Downstream marker on target end"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,1696 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  DDD Context Mapper
+  Copyright (C) 2026 Florian Krämer
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDD Context Map - Pro Edition</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            margin: 0;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        .main {
+            flex: 1;
+            min-width: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel {
+            width: 400px;
+            max-width: 42vw;
+            flex-shrink: 0;
+            border-left: 1px solid #ccc;
+            background: #fafafa;
+            overflow: hidden;
+            padding: 0;
+            font-size: 13px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tabs {
+            flex-shrink: 0;
+            display: flex;
+            gap: 0;
+            padding: 10px 10px 0;
+            border-bottom: 1px solid #ccc;
+            background: #f0f0f0;
+        }
+
+        .panel-tab {
+            flex: 1;
+            font: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 10px 12px;
+            margin: 0;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            border-radius: 6px 6px 0 0;
+            background: #e4e4e4;
+            color: #444;
+        }
+
+        .panel-tab:hover {
+            background: #ececec;
+            color: #222;
+        }
+
+        .panel-tab[aria-selected="true"] {
+            background: #fafafa;
+            color: #111;
+            border-color: #ccc;
+            border-bottom-color: #fafafa;
+            margin-bottom: -1px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .panel-tab-panes {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tab-pane {
+            padding: 12px 14px 20px;
+            box-sizing: border-box;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Author `display:flex` above beats the UA `hidden` rule; restore hiding. */
+        .panel-tab-pane[hidden] {
+            display: none !important;
+        }
+
+        .panel-tab-pane > section:first-of-type {
+            flex-shrink: 0;
+        }
+
+        .panel-tab-pane > section:nth-of-type(2) {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-tab-pane > section:nth-of-type(2) h3 {
+            flex-shrink: 0;
+        }
+
+        .panel-tab-pane > section:nth-of-type(2) .list {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel h2 {
+            margin: 0 0 12px;
+            font-size: 15px;
+        }
+
+        .panel h3 {
+            margin: 16px 0 8px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: #555;
+        }
+
+        .panel-tab-pane section:first-of-type h3 {
+            margin-top: 0;
+        }
+
+        .panel input[type="text"],
+        .panel textarea,
+        .panel select {
+            width: 100%;
+            box-sizing: border-box;
+            font: inherit;
+            margin-bottom: 8px;
+            padding: 8px 10px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            line-height: 1.35;
+            min-height: 38px;
+        }
+
+        .panel input[type="color"] {
+            width: 100%;
+            box-sizing: border-box;
+            height: 38px;
+            margin-bottom: 8px;
+            padding: 4px;
+            border: 1px solid #bbb;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .panel textarea {
+            min-height: 56px;
+            resize: vertical;
+        }
+
+        .panel .row2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        /* Two color pickers: labels above swatches, aligned to panel width */
+        .panel .color-fields {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 14px;
+            margin-top: 12px;
+            margin-bottom: 10px;
+            align-items: start;
+        }
+
+        .panel .color-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 0;
+        }
+
+        .panel .color-field .hint {
+            margin: 0;
+            display: block;
+        }
+
+        .panel .color-field input[type="color"] {
+            margin-bottom: 0;
+            width: 100%;
+            height: 40px;
+        }
+
+        .panel button.panel-btn-block {
+            width: 100%;
+            box-sizing: border-box;
+            margin: 4px 0 0;
+            margin-right: 0;
+            padding: 9px 12px;
+            font-weight: 600;
+        }
+
+        .panel button {
+            font: inherit;
+            font-size: 12px;
+            padding: 6px 10px;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #fff;
+            border-radius: 4px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+        }
+
+        .panel button:hover {
+            background: #eee;
+        }
+
+        .panel button.danger {
+            border-color: #a33;
+            color: #822;
+        }
+
+        .panel button.danger:hover {
+            background: #fee;
+        }
+
+        .panel .list {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: #fff;
+            overflow: auto;
+        }
+
+        .panel .list-item {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .panel .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .panel .list-item:hover {
+            background: #f5f8fc;
+        }
+
+        .panel .list-item.active {
+            background: #e8f0fe;
+            outline: 1px solid #06c;
+        }
+
+        .panel .list-item .item-main {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .panel .list-item .item-title {
+            font-weight: 600;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+            white-space: normal;
+            max-height: 4.2em;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        .panel .list-item .item-sub {
+            font-size: 10px;
+            color: #666;
+            font-family: ui-monospace, monospace;
+            word-break: break-all;
+            line-height: 1.25;
+        }
+
+        .panel .list-item .item-sub.type-rel {
+            font-family: inherit;
+            font-style: italic;
+            color: #555;
+        }
+
+        .panel .list-rel-arrow {
+            color: #888;
+            font-weight: 500;
+            margin: 0 4px;
+        }
+
+        .panel .list-item .mini {
+            flex-shrink: 0;
+            display: flex;
+            gap: 4px;
+        }
+
+        .panel .list-item .mini button {
+            margin: 0;
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        .panel #detail-section {
+            flex-shrink: 0;
+            margin-top: 0;
+            padding: 12px 14px 24px;
+            border-top: 1px solid #ddd;
+            background: #fafafa;
+        }
+
+        .panel-footer {
+            flex-shrink: 0;
+            margin-top: auto;
+            padding: 10px 14px 12px;
+            border-top: 1px solid #ccc;
+            background: #f0f0f0;
+            font-size: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0 0.5em;
+        }
+
+        .panel-footer a {
+            color: #1a5fb4;
+            text-decoration: none;
+        }
+
+        .panel-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .panel-footer-sep {
+            color: #888;
+            user-select: none;
+        }
+
+        .panel .hint {
+            font-size: 11px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        .node ellipse {
+            stroke: #000;
+            stroke-width: 2.5px;
+            cursor: pointer;
+            transition: fill 0.2s, filter 0.2s;
+        }
+
+        .node:hover ellipse {
+            filter: brightness(0.94);
+        }
+
+        .node.node--selected ellipse {
+            stroke: #06c;
+            stroke-width: 3px;
+        }
+
+        .node text {
+            font-size: 13px;
+            font-weight: 700;
+            text-anchor: middle;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .link {
+            fill: none;
+            stroke: #000;
+            stroke-width: 1.5px;
+            pointer-events: none;
+        }
+
+        .link.link--selected {
+            stroke: #06c;
+            stroke-width: 2.5px;
+        }
+
+        .link-hit {
+            fill: none;
+            stroke: transparent;
+            stroke-width: 18px;
+            cursor: pointer;
+        }
+
+        .edge-box {
+            fill: #fff;
+            stroke: #000;
+            stroke-width: 1.2px;
+        }
+
+        .edge-text {
+            font-size: 10px;
+            font-weight: 800;
+            text-anchor: middle;
+            dominant-baseline: middle;
+            pointer-events: none;
+        }
+
+        .label-ud {
+            font-size: 11px;
+            font-weight: bold;
+            font-family: monospace;
+            fill: #000;
+            pointer-events: none;
+        }
+
+        .rel-label {
+            font-size: 11px;
+            font-style: italic;
+            text-anchor: middle;
+            fill: #444;
+            pointer-events: none;
+        }
+
+        #viz {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 12px;
+            color: #666;
+            pointer-events: none;
+            max-width: 420px;
+            line-height: 1.35;
+        }
+
+        .zoom-bg {
+            cursor: grab;
+        }
+
+        .zoom-bg:active {
+            cursor: grabbing;
+        }
+
+        #viz svg {
+            display: block;
+            touch-action: none;
+        }
+
+        .main .toolbar {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+            z-index: 2;
+        }
+
+        .toolbar button {
+            font: inherit;
+            font-size: 13px;
+            padding: 6px 12px;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #fff;
+            border-radius: 4px;
+        }
+
+        .toolbar button:hover {
+            background: #f4f4f4;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div class="app">
+        <div class="main">
+            <div class="toolbar">
+                <button type="button" id="btn-regenerate">Auto (re)arrange</button>
+                <button type="button" id="btn-export">Export JSON</button>
+                <button type="button" id="btn-import">Import JSON…</button>
+                <input type="file" id="import-file" accept=".json,application/json" hidden />
+            </div>
+            <div class="instructions">Scroll or pinch to zoom. Drag empty space to pan (click away from contexts and lines). Click a
+                context or relationship to edit in the panel. Double-click a context for a quick rename prompt. Delete / Backspace
+                removes the selection. Auto (re)arrange re-runs the layout algorithm. Export / Import JSON saves everything
+                including zoom.
+            </div>
+            <div id="viz"></div>
+        </div>
+        <aside class="panel" id="editor-panel">
+            <div class="panel-tabs" role="tablist" aria-label="Map editor">
+                <button type="button" class="panel-tab" role="tab" id="tab-contexts" aria-selected="true" aria-controls="panel-contexts-pane">Contexts</button>
+                <button type="button" class="panel-tab" role="tab" id="tab-relationships" aria-selected="false" aria-controls="panel-relationships-pane">Relationships</button>
+            </div>
+            <div class="panel-tab-panes">
+                <div class="panel-tab-pane" id="panel-contexts-pane" role="tabpanel" aria-labelledby="tab-contexts">
+                    <section>
+                        <h3>New bounded context</h3>
+                        <input type="text" id="new-ctx-id" placeholder="Optional internal id (UUID v4 if empty)" maxlength="128" autocomplete="off" spellcheck="false" />
+                        <p class="hint" style="margin: -4px 0 8px;">Leave id blank to auto-generate a UUID. Use a custom id only if you want a stable short code for JSON or APIs.</p>
+                        <textarea id="new-ctx-label" placeholder="Display name (line breaks allowed) — shown on the map and in lists"></textarea>
+                        <div class="color-fields" role="group" aria-label="Default colors for new context">
+                            <div class="color-field">
+                                <label class="hint" for="new-ctx-bg">Background</label>
+                                <input type="color" id="new-ctx-bg" value="#ffffff" title="Ellipse fill" />
+                            </div>
+                            <div class="color-field">
+                                <label class="hint" for="new-ctx-text">Text</label>
+                                <input type="color" id="new-ctx-text" value="#000000" title="Label color" />
+                            </div>
+                        </div>
+                        <button type="button" id="btn-add-ctx" class="panel-btn-block">Add context</button>
+                    </section>
+                    <section>
+                        <h3>Contexts</h3>
+                        <div class="list list--contexts" id="list-contexts"></div>
+                    </section>
+                </div>
+                <div class="panel-tab-pane" id="panel-relationships-pane" role="tabpanel" aria-labelledby="tab-relationships" hidden>
+                    <section>
+                        <h3>New relationship</h3>
+                        <div class="row2">
+                            <select id="new-rel-from"></select>
+                            <select id="new-rel-to"></select>
+                        </div>
+                        <select id="new-rel-pattern"></select>
+                        <button type="button" id="btn-add-rel">Add relationship</button>
+                    </section>
+                    <section>
+                        <h3>Relationships</h3>
+                        <div class="list list--rels" id="list-rels"></div>
+                    </section>
+                </div>
+            </div>
+            <section id="detail-section" hidden>
+                <h3 id="detail-title">Selection</h3>
+                <div id="detail-body"></div>
+            </section>
+            <footer class="panel-footer">
+                <a href="https://florian-kraemer.net/" target="_blank" rel="noopener noreferrer">florian-kraemer.net</a>
+                <span class="panel-footer-sep" aria-hidden="true">·</span>
+                <a href="https://github.com/floriankraemer/ddd-context-mapper" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </footer>
+        </aside>
+    </div>
+
+    <script>
+        const rx = 100, ry = 45;
+        const DEFAULT_NODE_BG = "#ffffff";
+        const DEFAULT_NODE_TEXT = "#000000";
+        const DEFAULT_LINK_COLOR = "#000000";
+
+        function nodeBackgroundColor(n) {
+            const c = n && n.backgroundColor;
+            return typeof c === "string" && c.trim() ? c.trim() : DEFAULT_NODE_BG;
+        }
+
+        function nodeTextColor(n) {
+            const c = n && n.textColor;
+            return typeof c === "string" && c.trim() ? c.trim() : DEFAULT_NODE_TEXT;
+        }
+
+        function linkStrokeColor(l) {
+            const raw = l && (l.color != null ? l.color : l.stroke);
+            const c = typeof raw === "string" ? raw.trim() : "";
+            return c || DEFAULT_LINK_COLOR;
+        }
+
+        /** Normalize to #rrggbb for HTML color inputs. */
+        function normalizeHexForColorInput(hex) {
+            const s = String(hex || "").trim();
+            if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+            if (/^#[0-9a-fA-F]{3}$/.test(s)) {
+                return ("#" + s[1] + s[1] + s[2] + s[2] + s[3] + s[3]).toLowerCase();
+            }
+            return DEFAULT_LINK_COLOR;
+        }
+
+        // Realistic multi-context e-commerce / ops map (~20 bounded contexts, dense edges).
+        let data = {
+            nodes: [
+                { id: "ORD", label: "Order Management\nContext" },
+                { id: "CAT", label: "Product Catalog\nContext" },
+                { id: "INV", label: "Inventory\nContext" },
+                { id: "WHS", label: "Warehouse / WMS\nContext" },
+                { id: "SHP", label: "Shipping & Carriers\nContext" },
+                { id: "PAY", label: "Payments\nContext" },
+                { id: "FRD", label: "Fraud & Risk\nContext" },
+                { id: "PRC", label: "Pricing & Promotions\nContext" },
+                { id: "SUB", label: "Subscriptions &\nEntitlements" },
+                { id: "CRM", label: "Customer CRM /\n360 Profile" },
+                { id: "IAM", label: "Identity & Access\nContext" },
+                { id: "NTF", label: "Notifications\nContext" },
+                { id: "ANL", label: "Analytics &\nExperimentation" },
+                { id: "REV", label: "Reviews & UGC\nContext" },
+                { id: "VND", label: "Vendor / Supplier\nPortal" },
+                { id: "RFD", label: "Returns & Refunds\nContext" },
+                { id: "TAX", label: "Tax & Compliance\nEngine" },
+                { id: "CMP", label: "Privacy & Consent\nRecords" },
+                { id: "LOY", label: "Loyalty & Rewards\nContext" },
+                { id: "SRC", label: "Search & Discovery\nContext" }
+            ],
+            links: [
+                { source: "ORD", target: "CAT", label: "Customer/Supplier", sUD: "D", tUD: "U" },
+                { source: "ORD", target: "PAY", label: "Customer/Supplier", sUD: "D", tUD: "U" },
+                { source: "ORD", target: "FRD", label: "Customer/Supplier", sUD: "D", tUD: "U" },
+                { source: "ORD", target: "PRC", sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "ORD", target: "CRM", sBox: "CONFORMIST", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "ORD", target: "NTF", sBox: "OHS / PL", tBox: "ACL", sUD: "D", tUD: "U" },
+                { source: "ORD", target: "SUB", label: "Customer/Supplier", sUD: "D", tUD: "U" },
+                { source: "CAT", target: "INV", sBox: "OHS / PL", tBox: "ACL", sUD: "U", tUD: "D" },
+                { source: "CAT", target: "SRC", label: "Partnership" },
+                { source: "CAT", target: "REV", sBox: "OHS / PL", tBox: "ACL", sUD: "U", tUD: "D" },
+                { source: "CAT", target: "VND", sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "INV", target: "WHS", label: "Customer/Supplier", sUD: "U", tUD: "D" },
+                { source: "INV", target: "SHP", sBox: "OHS / PL", tBox: "ACL", sUD: "U", tUD: "D" },
+                { source: "WHS", target: "INV", sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "SHP", target: "ORD", sBox: "CONFORMIST", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "PAY", target: "TAX", label: "Shared Kernel" },
+                { source: "PAY", target: "FRD", label: "Partnership" },
+                { source: "PAY", target: "RFD", sBox: "OHS / PL", tBox: "ACL", sUD: "U", tUD: "D" },
+                { source: "SUB", target: "PAY", sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "SUB", target: "CRM", label: "Customer/Supplier", sUD: "D", tUD: "U" },
+                { source: "CRM", target: "IAM", label: "Customer/Supplier", sUD: "D", tUD: "U" },
+                { source: "CRM", target: "CMP", sBox: "OHS / PL", tBox: "ACL", sUD: "U", tUD: "D" },
+                { source: "IAM", target: "CMP", label: "Partnership" },
+                { source: "NTF", target: "CRM", sBox: "CONFORMIST", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "ANL", target: "ORD", sBox: "ACL", tBox: "CONFORMIST", sUD: "D", tUD: "U" },
+                { source: "ANL", target: "SRC", sBox: "ACL", tBox: "CONFORMIST", sUD: "D", tUD: "U" },
+                { source: "RFD", target: "ORD", sBox: "OHS / PL", tBox: "ACL", sUD: "D", tUD: "U" },
+                { source: "RFD", target: "INV", sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "LOY", target: "CRM", label: "Customer/Supplier", sUD: "D", tUD: "U" },
+                { source: "LOY", target: "PRC", sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "SRC", target: "CAT", sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "SRC", target: "PRC", sBox: "CONFORMIST", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "VND", target: "INV", sBox: "OHS / PL", tBox: "ACL", sUD: "U", tUD: "D" },
+                { source: "FRD", target: "IAM", sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                { source: "TAX", target: "ORD", sBox: "OHS / PL", tBox: "CONFORMIST", sUD: "U", tUD: "D" }
+            ]
+        };
+
+        const vizEl = document.getElementById("viz");
+        function svgSize() {
+            const w = vizEl.clientWidth || Math.max(200, window.innerWidth - 420);
+            const h = vizEl.clientHeight || window.innerHeight;
+            return { width: Math.max(200, w), height: Math.max(200, h) };
+        }
+        let { width, height } = svgSize();
+        const svg = d3.select("#viz").append("svg").attr("width", width).attr("height", height);
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+        }
+
+        function truncateText(str, max) {
+            const s = String(str);
+            if (s.length <= max) return s;
+            return s.slice(0, Math.max(0, max - 1)) + "…";
+        }
+
+        function nodeById(id) {
+            return data.nodes.find(n => n.id === id);
+        }
+
+        function nodeDisplayName(n) {
+            if (!n) return "?";
+            const line = String(n.label || "").split("\n")[0].trim();
+            return line || n.id;
+        }
+
+        function nodeTitleText(n) {
+            if (!n) return "";
+            const t = String(n.label || "").trim();
+            return t ? t : n.id;
+        }
+
+        function nodesSortedByDisplayName() {
+            return [...data.nodes].sort((a, b) =>
+                nodeDisplayName(a).localeCompare(nodeDisplayName(b), undefined, { sensitivity: "base" })
+            );
+        }
+
+        function newUuidV4() {
+            if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+            return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0;
+                const v = c === "x" ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        let selectedNodeId = null;
+        let selectedLinkIndex = -1;
+
+        function linkEndpoints(l, idToNode) {
+            const s = typeof l.source === "object" ? l.source : idToNode.get(l.source);
+            const t = typeof l.target === "object" ? l.target : idToNode.get(l.target);
+            return { s, t, sid: s.id, tid: t.id };
+        }
+
+        function orient(a, b, c) {
+            const v = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
+            return v > 1e-9 ? 1 : v < -1e-9 ? -1 : 0;
+        }
+
+        function segmentsCross(p1, p2, p3, p4) {
+            const o1 = orient(p1, p2, p3), o2 = orient(p1, p2, p4);
+            const o3 = orient(p3, p4, p1), o4 = orient(p3, p4, p2);
+            return o1 * o2 < 0 && o3 * o4 < 0;
+        }
+
+        /** Crossing count using node centers (stable metric; avoids false hits at ellipse rims). */
+        function countCrossings(nodes, links) {
+            const idToNode = new Map(nodes.map(n => [n.id, n]));
+            const segs = links.map(l => {
+                const { s, t, sid, tid } = linkEndpoints(l, idToNode);
+                return { p1: { x: s.x, y: s.y }, p2: { x: t.x, y: t.y }, sid, tid };
+            });
+            let c = 0;
+            for (let i = 0; i < segs.length; i++) {
+                for (let j = i + 1; j < segs.length; j++) {
+                    const a = segs[i], b = segs[j];
+                    if (a.sid === b.sid || a.sid === b.tid || a.tid === b.sid || a.tid === b.tid) continue;
+                    if (segmentsCross(a.p1, a.p2, b.p1, b.p2)) c++;
+                }
+            }
+            return c;
+        }
+
+        /**
+         * Picks positions from several force-directed runs with random seeds;
+         * chooses the layout with the fewest edge crossings, then pins nodes.
+         */
+        function computeLayout(nodes, links, w, h) {
+            const margin = Math.max(rx, ry) + 48;
+            const innerW = Math.max(80, w - 2 * margin);
+            const innerH = Math.max(80, h - 2 * margin);
+            const n = nodes.length;
+            if (n === 0) return;
+            if (n === 1) {
+                nodes[0].x = w / 2;
+                nodes[0].y = h / 2;
+                nodes[0].fx = nodes[0].x;
+                nodes[0].fy = nodes[0].y;
+                return;
+            }
+
+            const linkDefs = links.map(l => ({
+                source: typeof l.source === "object" ? l.source.id : l.source,
+                target: typeof l.target === "object" ? l.target.id : l.target
+            }));
+
+            const collideR = Math.hypot(rx, ry) + 12;
+            const baseDist = Math.min(320, Math.max(140, Math.min(innerW, innerH) / Math.max(3, Math.sqrt(n))));
+            const charge = -(400 + n * 120);
+            const numTries = n <= 12 ? Math.min(90, 24 + n * n * 2) : Math.min(45, 18 + n * 2);
+            const ticksPerTry = n <= 12 ? 220 + n * 25 : 140 + n * 10;
+
+            let best = null;
+            let bestCross = Infinity;
+
+            for (let trial = 0; trial < numTries; trial++) {
+                const trialNodes = nodes.map(d => {
+                    const o = {
+                        ...d,
+                        x: margin + Math.random() * innerW,
+                        y: margin + Math.random() * innerH,
+                        vx: 0,
+                        vy: 0
+                    };
+                    delete o.fx;
+                    delete o.fy;
+                    return o;
+                });
+                const idToTrial = new Map(trialNodes.map(nn => [nn.id, nn]));
+                const trialLinks = linkDefs.map(ld => ({
+                    source: idToTrial.get(ld.source),
+                    target: idToTrial.get(ld.target)
+                })).filter(l => l.source && l.target);
+
+                if (trialLinks.length === 0 && linkDefs.length > 0) continue;
+
+                const linkForce = d3.forceLink(trialLinks).id(d => d.id)
+                    .distance(() => baseDist * (0.85 + Math.random() * 0.35));
+
+                const sim = d3.forceSimulation(trialNodes)
+                    .force("charge", d3.forceManyBody().strength(charge))
+                    .force("center", d3.forceCenter(w / 2, h / 2))
+                    .force("collide", d3.forceCollide().radius(collideR));
+                if (trialLinks.length) sim.force("link", linkForce);
+                sim.stop();
+
+                for (let t = 0; t < ticksPerTry; t++) sim.tick();
+
+                const crosses = countCrossings(trialNodes, trialLinks);
+                if (crosses < bestCross) {
+                    bestCross = crosses;
+                    best = trialNodes.map(nn => ({ id: nn.id, x: nn.x, y: nn.y }));
+                    if (bestCross === 0) break;
+                }
+            }
+
+            if (!best) {
+                best = nodes.map((d, i) => ({
+                    id: d.id,
+                    x: margin + (i / Math.max(1, n - 1)) * innerW,
+                    y: h / 2
+                }));
+            }
+
+            const byId = new Map(best.map(p => [p.id, p]));
+            nodes.forEach(d => {
+                const p = byId.get(d.id);
+                d.x = p.x;
+                d.y = p.y;
+                d.fx = p.x;
+                d.fy = p.y;
+            });
+        }
+
+        computeLayout(data.nodes, data.links, width, height);
+
+        const zoomLayer = svg.append("g").attr("class", "zoom-layer");
+        zoomLayer.append("rect")
+            .attr("class", "zoom-bg")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", width)
+            .attr("height", height)
+            .attr("fill", "transparent");
+
+        const linkG = zoomLayer.append("g");
+        const labelG = zoomLayer.append("g");
+        const linkHitG = zoomLayer.append("g").attr("class", "link-hit-layer");
+        const nodeG = zoomLayer.append("g");
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.12, 8])
+            .filter((event) => {
+                if (event.type === "dblclick") return false;
+                if (event.type === "wheel") return true;
+                if (event.target.closest?.(".node")) return false;
+                if (event.target.closest?.(".link-hit")) return false;
+                return !event.button;
+            })
+            .on("zoom", (event) => {
+                zoomLayer.attr("transform", event.transform);
+            });
+
+        svg.call(zoom).on("dblclick.zoom", null);
+
+        let link;
+        let linkHit;
+
+        function bindLinks() {
+            link = linkG.selectAll(".link")
+                .data(data.links)
+                .join(enter => enter.append("line").attr("class", "link"));
+        }
+
+        function bindLinkHits() {
+            linkHit = linkHitG.selectAll(".link-hit")
+                .data(data.links)
+                .join(enter => enter.append("line")
+                    .attr("class", "link-hit")
+                    .attr("pointer-events", "stroke")
+                    .on("click", (e, d) => {
+                        e.stopPropagation();
+                        const i = data.links.indexOf(d);
+                        if (i >= 0) selectLink(i);
+                    }));
+        }
+
+        function resolveLinks() {
+            const byId = new Map(data.nodes.map(n => [n.id, n]));
+            data.links.forEach(l => {
+                const sid = typeof l.source === "object" ? l.source.id : l.source;
+                const tid = typeof l.target === "object" ? l.target.id : l.target;
+                l.source = byId.get(sid);
+                l.target = byId.get(tid);
+            });
+        }
+
+        function renderNodes() {
+            const nodes = nodeG.selectAll(".node").data(data.nodes, d => d.id);
+
+            nodes.exit().remove();
+
+            const nEnter = nodes.enter().append("g")
+                .attr("class", "node")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended));
+
+            nEnter.append("ellipse").attr("rx", rx).attr("ry", ry);
+
+            const nMerged = nEnter.merge(nodes);
+            nMerged.select("ellipse").attr("fill", d => nodeBackgroundColor(d));
+            nMerged
+                .on("click", (e, d) => {
+                    e.stopPropagation();
+                    selectNode(d.id);
+                })
+                .on("dblclick", (e, d) => {
+                    e.stopPropagation();
+                    const newName = prompt("Context label (use \\n for line break):", d.label);
+                    if (newName !== null) {
+                        d.label = newName.replace(/\\n/g, "\n");
+                        renderNodes();
+                        simulation.alpha(0.3).restart();
+                        refreshPanel();
+                    }
+                });
+            nMerged.selectAll("text").remove();
+            nMerged.each(function (d) {
+                const lines = d.label.split("\n");
+                const tc = nodeTextColor(d);
+                d3.select(this).selectAll("text").data(lines).enter().append("text")
+                    .attr("dy", (l, i) => i * 16 - (lines.length - 1) * 8 + 4)
+                    .attr("fill", tc)
+                    .text(l => l);
+            });
+        }
+
+        zoomLayer.select(".zoom-bg").on("click", () => clearSelection());
+
+        function getIntersection(s, t) {
+            const dx = t.x - s.x, dy = t.y - s.y;
+            const theta = Math.atan2(dy, dx);
+            const r = (rx * ry) / Math.sqrt(Math.pow(ry * Math.cos(theta), 2) + Math.pow(rx * Math.sin(theta), 2));
+            return { x: s.x + r * Math.cos(theta), y: s.y + r * Math.sin(theta), angle: theta };
+        }
+
+        function ticked() {
+            nodeG.selectAll(".node")
+                .attr("transform", d => `translate(${d.x},${d.y})`)
+                .classed("node--selected", d => d.id === selectedNodeId);
+
+            link.each(function (d, i) {
+                const s = getIntersection(d.source, d.target);
+                const t = getIntersection(d.target, d.source);
+                const sel = i === selectedLinkIndex;
+                d3.select(this)
+                    .classed("link--selected", sel)
+                    .attr("stroke", sel ? "#06c" : linkStrokeColor(d))
+                    .attr("stroke-width", sel ? 2.5 : 1.5)
+                    .attr("x1", s.x).attr("y1", s.y).attr("x2", t.x).attr("y2", t.y);
+            });
+
+            linkHit.each(function (d, i) {
+                const s = getIntersection(d.source, d.target);
+                const t = getIntersection(d.target, d.source);
+                d3.select(this)
+                    .classed("link-hit--selected", i === selectedLinkIndex)
+                    .attr("x1", s.x).attr("y1", s.y).attr("x2", t.x).attr("y2", t.y);
+            });
+
+            labelG.selectAll("*").remove();
+
+            data.links.forEach(d => {
+                const sPoint = getIntersection(d.source, d.target);
+                const tPoint = getIntersection(d.target, d.source);
+                const angle = Math.atan2(d.target.y - d.source.y, d.target.x - d.source.x);
+
+                if (d.label) {
+                    labelG.append("text").attr("class", "rel-label")
+                        .attr("fill", linkStrokeColor(d))
+                        .attr("x", (d.source.x + d.target.x) / 2).attr("y", (d.source.y + d.target.y) / 2 - 15).text(d.label);
+                }
+
+                const bH = 18;
+                // Check if box exists to calculate U/D position relative to it
+                const sBoxW = d.sBox ? d.sBox.length * 7 + 10 : 0;
+                const tBoxW = d.tBox ? d.tBox.length * 7 + 10 : 0;
+
+                if (d.sBox) drawGate(sPoint, angle, d.sBox, sBoxW, bH, true);
+                if (d.sUD) drawUD(sPoint, angle, d.sUD, sBoxW, bH, true, d.source);
+
+                if (d.tBox) drawGate(tPoint, angle, d.tBox, tBoxW, bH, false);
+                if (d.tUD) drawUD(tPoint, angle, d.tUD, tBoxW, bH, false, d.target);
+            });
+        }
+
+        const simulation = d3.forceSimulation(data.nodes)
+            .force("link", d3.forceLink(data.links).id(d => d.id).distance(350))
+            .force("charge", d3.forceManyBody().strength(-2800))
+            .force("center", d3.forceCenter(width / 2, height / 2))
+            .on("tick", ticked);
+
+        function drawGate(point, angle, txt, bW, bH, isSource) {
+            const offset = (bW / 2) * (isSource ? 1 : -1);
+            const cx = point.x + Math.cos(angle) * offset;
+            const cy = point.y + Math.sin(angle) * offset;
+
+            let rot = angle * (180 / Math.PI);
+            if (rot > 90 || rot < -90) rot += 180;
+
+            const g = labelG.append("g").attr("transform", `translate(${cx},${cy}) rotate(${rot})`);
+            g.append("rect").attr("class", "edge-box").attr("x", -bW / 2).attr("y", -bH / 2).attr("width", bW).attr("height", bH);
+            g.append("text").attr("class", "edge-text").text(txt);
+        }
+
+        /** Normalized ellipse distance: > 1 means outside the rx/ry ellipse around (cx,cy). */
+        function ellipseNorm2(px, py, cx, cy) {
+            const dx = (px - cx) / rx, dy = (py - cy) / ry;
+            return dx * dx + dy * dy;
+        }
+
+        /**
+         * `point` = line ∩ ellipse rim (same as boxes). `nodeCenter` = that endpoint's node.
+         * Offset along the edge from `point`, then perpendicular; pick the side and distance so
+         * the label stays outside the ellipse.
+         */
+        function drawUD(point, angle, txt, bW, bH, isSource, nodeCenter) {
+            const paddingAlongLine = 8;
+            const basePerp = 16;
+            const cosA = Math.cos(angle), sinA = Math.sin(angle);
+            const dist = isSource ? (bW + paddingAlongLine) : -(bW + paddingAlongLine);
+            const outsideMin = 1.22;
+
+            function at(side, perp) {
+                return {
+                    x: point.x + cosA * dist - sinA * perp * side,
+                    y: point.y + sinA * dist + cosA * perp * side
+                };
+            }
+
+            let side = 1;
+            let perp = basePerp;
+            if (nodeCenter && Number.isFinite(nodeCenter.x) && Number.isFinite(nodeCenter.y)) {
+                const pPos = at(1, basePerp), pNeg = at(-1, basePerp);
+                const mPos = ellipseNorm2(pPos.x, pPos.y, nodeCenter.x, nodeCenter.y);
+                const mNeg = ellipseNorm2(pNeg.x, pNeg.y, nodeCenter.x, nodeCenter.y);
+                side = mNeg > mPos ? -1 : 1;
+                let p = at(side, perp);
+                while (ellipseNorm2(p.x, p.y, nodeCenter.x, nodeCenter.y) < outsideMin && perp < 160) {
+                    perp += 5;
+                    p = at(side, perp);
+                }
+            }
+
+            const p = at(side, perp);
+            labelG.append("text").attr("class", "label-ud").attr("x", p.x).attr("y", p.y).text(txt);
+        }
+
+        function dragstarted(e, d) {
+            if (!e.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+        function dragged(e, d) {
+            const [x, y] = d3.pointer(e, zoomLayer.node());
+            d.fx = x;
+            d.fy = y;
+        }
+        function dragended(e, d) {
+            if (!e.active) simulation.alphaTarget(0);
+            d.fx = d.x;
+            d.fy = d.y;
+        }
+
+        function linkSourceId(l) {
+            return typeof l.source === "object" ? l.source.id : l.source;
+        }
+
+        function linkTargetId(l) {
+            return typeof l.target === "object" ? l.target.id : l.target;
+        }
+
+        function exportDiagram() {
+            const t = d3.zoomTransform(svg.node());
+            const payload = {
+                version: 2,
+                exportedAt: new Date().toISOString(),
+                view: { k: t.k, x: t.x, y: t.y },
+                nodes: data.nodes.map(n => ({
+                    id: n.id,
+                    label: n.label,
+                    x: n.x,
+                    y: n.y,
+                    backgroundColor: nodeBackgroundColor(n),
+                    textColor: nodeTextColor(n)
+                })),
+                links: data.links.map(l => {
+                    const o = {
+                        source: linkSourceId(l),
+                        target: linkTargetId(l),
+                        color: linkStrokeColor(l)
+                    };
+                    for (const k of ["label", "sBox", "tBox", "sUD", "tUD"]) {
+                        if (l[k] != null) o[k] = l[k];
+                    }
+                    return o;
+                })
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "context-map.json";
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function validateSnapshotSemantics(json) {
+            if (!json || typeof json !== "object" || Array.isArray(json)) {
+                throw new Error("Invalid snapshot: root must be a JSON object.");
+            }
+            if (![1, 2].includes(json.version)) {
+                throw new Error('Invalid snapshot: "version" must be 1 or 2.');
+            }
+            if (!Array.isArray(json.nodes) || !Array.isArray(json.links)) {
+                throw new Error('Invalid snapshot: expected "nodes" and "links" arrays.');
+            }
+            const seen = new Set();
+            for (let i = 0; i < json.nodes.length; i++) {
+                const n = json.nodes[i];
+                const id = n && n.id != null ? String(n.id).trim() : "";
+                if (!id) throw new Error(`nodes[${i}]: missing or empty id.`);
+                if (seen.has(id)) throw new Error(`Duplicate node id: "${id}".`);
+                seen.add(id);
+            }
+            for (let i = 0; i < json.links.length; i++) {
+                const l = json.links[i];
+                const s = typeof l.source === "object" && l.source ? l.source.id : l.source;
+                const t = typeof l.target === "object" && l.target ? l.target.id : l.target;
+                const sid = s != null ? String(s).trim() : "";
+                const tid = t != null ? String(t).trim() : "";
+                if (!sid || !tid) {
+                    throw new Error(`links[${i}]: "source" and "target" must be non-empty.`);
+                }
+                if (!seen.has(sid) || !seen.has(tid)) {
+                    throw new Error(`links[${i}]: unknown node "${sid}" → "${tid}".`);
+                }
+            }
+        }
+
+        function snapshotForJsonSchema(json) {
+            return {
+                ...json,
+                links: json.links.map(l => ({
+                    ...l,
+                    source: typeof l.source === "object" && l.source && l.source.id != null
+                        ? l.source.id
+                        : l.source,
+                    target: typeof l.target === "object" && l.target && l.target.id != null
+                        ? l.target.id
+                        : l.target
+                }))
+            };
+        }
+
+        async function validateImportedContextMap(json) {
+            validateSnapshotSemantics(json);
+            let schemaUrl;
+            try {
+                schemaUrl = new URL("context-map.schema.json", window.location.href);
+            } catch (e) {
+                console.warn("Could not resolve context-map.schema.json; skipping JSON Schema validation.");
+                return;
+            }
+            let res;
+            try {
+                res = await fetch(schemaUrl.toString());
+            } catch (e) {
+                console.warn("Could not fetch context-map.schema.json (e.g. file:// pages); skipping JSON Schema validation.", e);
+                return;
+            }
+            if (!res.ok) {
+                console.warn("context-map.schema.json not found; skipping JSON Schema validation.");
+                return;
+            }
+            const schema = await res.json();
+            const AjvMod = await import("https://esm.sh/ajv@8.17.1");
+            const Ajv = AjvMod.default ?? AjvMod;
+            const ajv = new Ajv({ allErrors: true, strict: false, validateSchema: false });
+            const validate = ajv.compile(schema);
+            const candidate = snapshotForJsonSchema(json);
+            if (!validate(candidate)) {
+                const lines = (validate.errors || []).map(e => {
+                    const path = e.instancePath || "(root)";
+                    return `${path} ${e.message}`;
+                });
+                throw new Error("JSON Schema validation failed:\n" + lines.join("\n"));
+            }
+        }
+
+        function applyImportedSnapshot(json) {
+            if (!json || !Array.isArray(json.nodes) || !Array.isArray(json.links)) {
+                throw new Error("Invalid snapshot: expected nodes and links arrays.");
+            }
+            const idSet = new Set(json.nodes.map(n => n.id));
+            for (const l of json.links) {
+                const s = typeof l.source === "object" ? l.source.id : l.source;
+                const t = typeof l.target === "object" ? l.target.id : l.target;
+                if (!idSet.has(s) || !idSet.has(t)) {
+                    throw new Error(`Link references unknown node: ${s} → ${t}`);
+                }
+            }
+
+            data.nodes = json.nodes.map(n => {
+                const x = Number(n.x), y = Number(n.y);
+                const px = Number.isFinite(x) ? x : width / 2;
+                const py = Number.isFinite(y) ? y : height / 2;
+                const row = {
+                    id: n.id,
+                    label: n.label != null ? String(n.label) : n.id,
+                    x: px,
+                    y: py,
+                    vx: 0,
+                    vy: 0,
+                    fx: px,
+                    fy: py
+                };
+                if (n.backgroundColor != null && String(n.backgroundColor).trim())
+                    row.backgroundColor = String(n.backgroundColor).trim();
+                if (n.textColor != null && String(n.textColor).trim())
+                    row.textColor = String(n.textColor).trim();
+                return row;
+            });
+            data.links = json.links.map(l => {
+                const src = typeof l.source === "object" ? l.source.id : l.source;
+                const tgt = typeof l.target === "object" ? l.target.id : l.target;
+                const o = { source: src, target: tgt };
+                for (const k of ["label", "sBox", "tBox", "sUD", "tUD"]) {
+                    if (l[k] != null) o[k] = l[k];
+                }
+                const lc = l.color != null ? String(l.color).trim() : (l.stroke != null ? String(l.stroke).trim() : "");
+                if (lc) o.color = lc;
+                return o;
+            });
+
+            bindLinks();
+            resolveLinks();
+            bindLinkHits();
+            renderNodes();
+            simulation.nodes(data.nodes);
+            simulation.force("link").links(data.links);
+
+            if (json.view && Number.isFinite(json.view.k)) {
+                svg.call(zoom.transform, d3.zoomIdentity
+                    .translate(json.view.x || 0, json.view.y || 0)
+                    .scale(json.view.k));
+            }
+
+            simulation.alpha(0.001).restart();
+            ticked();
+            clearSelection();
+            refreshPanel();
+        }
+
+        function regenerateLayout() {
+            const w = +svg.attr("width") || window.innerWidth;
+            const h = +svg.attr("height") || window.innerHeight;
+            computeLayout(data.nodes, data.links, w, h);
+            simulation.force("center", d3.forceCenter(w / 2, h / 2));
+            svg.call(zoom.transform, d3.zoomIdentity);
+            simulation.alpha(0.001).restart();
+            ticked();
+            refreshPanel();
+        }
+
+        function syncGraphFromData() {
+            resolveLinks();
+            simulation.nodes(data.nodes);
+            simulation.force("link").links(data.links);
+            bindLinks();
+            bindLinkHits();
+            renderNodes();
+            simulation.alpha(0.001).restart();
+            ticked();
+            refreshPanel();
+        }
+
+        function stripRelFields(l) {
+            ["label", "sBox", "tBox", "sUD", "tUD"].forEach(k => { delete l[k]; });
+        }
+
+        /**
+         * Canonical DDD context-map relationship presets (Strategic Design).
+         * Keys map to applyRelPreset; labels are what the user sees in dropdowns.
+         */
+        const RELATIONSHIP_PRESET_LIST = [
+            { key: "", label: "Plain (no DDD pattern)" },
+            { key: "partner", label: "Partnership" },
+            { key: "shared", label: "Shared Kernel" },
+            { key: "separate", label: "Separate Ways" },
+            { key: "bbom", label: "Big Ball of Mud" },
+            { key: "cs", label: "Customer–Supplier + U/D" },
+            { key: "cs_conf", label: "Customer–Supplier + Conformist (downstream)" },
+            { key: "acl", label: "Anti-Corruption Layer → OHS/PL + U/D" },
+            { key: "acl_only", label: "Anti-Corruption Layer only (downstream)" },
+            { key: "ohs_conf", label: "OHS/PL + Conformist + U/D" },
+            { key: "conf", label: "Conformist only (downstream)" },
+            { key: "ohs", label: "Open Host Service (upstream)" },
+            { key: "pl", label: "Published Language (upstream)" }
+        ];
+
+        function relationshipPresetOptionsHtml(selectedKey) {
+            return RELATIONSHIP_PRESET_LIST.map(({ key, label }) =>
+                `<option value="${escapeHtml(key)}"${key === selectedKey ? " selected" : ""}>${escapeHtml(label)}</option>`
+            ).join("");
+        }
+
+        function fillRelationshipPresetSelect(el, selectedKey) {
+            const prev = el.value;
+            el.innerHTML = relationshipPresetOptionsHtml("");
+            el.value = (selectedKey != null && RELATIONSHIP_PRESET_LIST.some(o => o.key === selectedKey))
+                ? selectedKey
+                : (RELATIONSHIP_PRESET_LIST.some(o => o.key === prev) ? prev : "");
+        }
+
+        function applyRelPreset(l, key) {
+            stripRelFields(l);
+            const P = {
+                partner: { label: "Partnership" },
+                shared: { label: "Shared Kernel" },
+                separate: { label: "Separate Ways" },
+                bbom: { label: "Big Ball of Mud" },
+                cs: { label: "Customer/Supplier", sUD: "D", tUD: "U" },
+                cs_conf: { label: "Customer/Supplier", sBox: "CONFORMIST", sUD: "D", tUD: "U" },
+                acl: { sBox: "ACL", tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                acl_only: { sBox: "ACL", sUD: "D", tUD: "U" },
+                ohs_conf: { sBox: "OHS / PL", tBox: "CONFORMIST", sUD: "U", tUD: "D" },
+                conf: { sBox: "CONFORMIST", sUD: "D", tUD: "U" },
+                ohs: { tBox: "OHS / PL", sUD: "D", tUD: "U" },
+                pl: { tBox: "Published Language", sUD: "D", tUD: "U" }
+            };
+            if (key && P[key]) Object.assign(l, P[key]);
+        }
+
+        function setEditorPanelTab(which) {
+            const isCtx = which === "contexts";
+            const tabCtx = document.getElementById("tab-contexts");
+            const tabRel = document.getElementById("tab-relationships");
+            const paneCtx = document.getElementById("panel-contexts-pane");
+            const paneRel = document.getElementById("panel-relationships-pane");
+            tabCtx.setAttribute("aria-selected", isCtx ? "true" : "false");
+            tabRel.setAttribute("aria-selected", isCtx ? "false" : "true");
+            paneCtx.hidden = !isCtx;
+            paneRel.hidden = isCtx;
+        }
+
+        function selectNode(id) {
+            selectedNodeId = id;
+            selectedLinkIndex = -1;
+            setEditorPanelTab("contexts");
+            refreshPanel();
+            renderDetail();
+            simulation.alpha(0.001).restart();
+        }
+
+        function selectLink(idx) {
+            selectedLinkIndex = idx;
+            selectedNodeId = null;
+            setEditorPanelTab("relationships");
+            refreshPanel();
+            renderDetail();
+            simulation.alpha(0.001).restart();
+        }
+
+        function clearSelection() {
+            selectedNodeId = null;
+            selectedLinkIndex = -1;
+            document.getElementById("detail-section").hidden = true;
+            refreshPanel();
+            simulation.alpha(0.001).restart();
+        }
+
+        function deleteNodeById(id) {
+            const n = nodeById(id);
+            const label = n ? nodeDisplayName(n) : id;
+            if (!confirm(`Delete context "${label}" and all attached relationships?`)) return;
+            data.links = data.links.filter(l => linkSourceId(l) !== id && linkTargetId(l) !== id);
+            data.nodes = data.nodes.filter(n => n.id !== id);
+            clearSelection();
+            syncGraphFromData();
+        }
+
+        function deleteLinkAt(i) {
+            if (i < 0 || i >= data.links.length) return;
+            if (!confirm("Delete this relationship?")) return;
+            data.links.splice(i, 1);
+            clearSelection();
+            syncGraphFromData();
+        }
+
+        function refreshPanel() {
+            const lc = document.getElementById("list-contexts");
+            lc.innerHTML = data.nodes.map(n => {
+                const active = n.id === selectedNodeId ? " active" : "";
+                return `<div class="list-item${active}" data-node-id="${escapeHtml(n.id)}"><span class="item-main" title="${escapeHtml(nodeTitleText(n))}"><span class="item-title">${escapeHtml(nodeDisplayName(n))}</span><span class="item-sub">${escapeHtml(n.id)}</span></span><span class="mini"><button type="button" data-action="edit-node" data-id="${escapeHtml(n.id)}">Edit</button><button type="button" class="danger" data-action="del-node" data-id="${escapeHtml(n.id)}">Del</button></span></div>`;
+            }).join("");
+
+            document.getElementById("list-rels").innerHTML = data.links.map((l, i) => {
+                const sid = linkSourceId(l), tid = linkTargetId(l);
+                const ns = nodeById(sid), nt = nodeById(tid);
+                const dnS = ns ? nodeDisplayName(ns) : sid;
+                const dnT = nt ? nodeDisplayName(nt) : tid;
+                const titleR = `${ns ? nodeTitleText(ns) : sid} → ${nt ? nodeTitleText(nt) : tid}` + (l.label ? ` — ${l.label}` : "");
+                const active = i === selectedLinkIndex ? " active" : "";
+                const relExtra = l.label ? `<span class="item-sub type-rel">${escapeHtml(l.label)}</span>` : "";
+                return `<div class="list-item${active}" data-link-idx="${i}"><span class="item-main" title="${escapeHtml(titleR)}"><span class="item-title">${escapeHtml(dnS)}<span class="list-rel-arrow">→</span>${escapeHtml(dnT)}</span>${relExtra}</span><span class="mini"><button type="button" data-action="edit-link" data-idx="${i}">Edit</button><button type="button" class="danger" data-action="del-link" data-idx="${i}">Del</button></span></div>`;
+            }).join("");
+
+            const opts = nodesSortedByDisplayName().map(n =>
+                `<option value="${escapeHtml(n.id)}" title="${escapeHtml(nodeTitleText(n))}">${escapeHtml(truncateText(nodeDisplayName(n), 76))}</option>`
+            ).join("");
+            document.getElementById("new-rel-from").innerHTML = '<option value="">From…</option>' + opts;
+            document.getElementById("new-rel-to").innerHTML = '<option value="">To…</option>' + opts;
+            fillRelationshipPresetSelect(document.getElementById("new-rel-pattern"));
+        }
+
+        function renderDetail() {
+            const sec = document.getElementById("detail-section");
+            const body = document.getElementById("detail-body");
+            const title = document.getElementById("detail-title");
+            body.innerHTML = "";
+
+            if (selectedNodeId) {
+                const n = data.nodes.find(x => x.id === selectedNodeId);
+                if (!n) {
+                    sec.hidden = true;
+                    return;
+                }
+                sec.hidden = false;
+                title.textContent = "Bounded context";
+                body.innerHTML = `<label class="hint">Internal id (read-only)</label><input type="text" id="det-node-id" value="${escapeHtml(n.id)}" readonly style="background:#f0f0f0;margin-bottom:10px" />
+                    <label class="hint">Display name (line breaks ok)</label><textarea id="det-node-label" style="min-height:72px">${escapeHtml(n.label)}</textarea>
+                    <div class="color-fields" role="group" aria-label="Context colors">
+                        <div class="color-field">
+                            <label class="hint" for="det-node-bg">Background color</label>
+                            <input type="color" id="det-node-bg" value="${escapeHtml(nodeBackgroundColor(n))}" title="Ellipse fill" />
+                        </div>
+                        <div class="color-field">
+                            <label class="hint" for="det-node-text">Text color</label>
+                            <input type="color" id="det-node-text" value="${escapeHtml(nodeTextColor(n))}" title="Label color" />
+                        </div>
+                    </div>
+                    <p><button type="button" id="det-save-node">Save</button> <button type="button" class="danger" id="det-del-node">Delete context</button></p>`;
+                document.getElementById("det-save-node").onclick = () => {
+                    n.label = document.getElementById("det-node-label").value;
+                    const bg = document.getElementById("det-node-bg").value;
+                    const tx = document.getElementById("det-node-text").value;
+                    if (bg && bg.toLowerCase() !== DEFAULT_NODE_BG) n.backgroundColor = bg;
+                    else delete n.backgroundColor;
+                    if (tx && tx.toLowerCase() !== DEFAULT_NODE_TEXT) n.textColor = tx;
+                    else delete n.textColor;
+                    renderNodes();
+                    simulation.alpha(0.3).restart();
+                    refreshPanel();
+                    renderDetail();
+                };
+                document.getElementById("det-del-node").onclick = () => deleteNodeById(n.id);
+                return;
+            }
+
+            if (selectedLinkIndex >= 0 && selectedLinkIndex < data.links.length) {
+                const l = data.links[selectedLinkIndex];
+                sec.hidden = false;
+                title.textContent = "Relationship";
+                const from = linkSourceId(l);
+                const to = linkTargetId(l);
+                const opts = cur => nodesSortedByDisplayName().map(n =>
+                    `<option value="${escapeHtml(n.id)}"${n.id === cur ? " selected" : ""} title="${escapeHtml(nodeTitleText(n))}">${escapeHtml(truncateText(nodeDisplayName(n), 72))}</option>`
+                ).join("");
+                body.innerHTML = `
+                    <label class="hint">From (context name)</label><select id="det-link-from">${opts(from)}</select>
+                    <label class="hint">To (context name)</label><select id="det-link-to">${opts(to)}</select>
+                    <label class="hint">Relation label (optional)</label><input type="text" id="det-link-label" value="${escapeHtml(l.label || "")}" placeholder="e.g. Customer/Supplier" />
+                    <label class="hint" for="det-link-color">Line &amp; relation label color</label>
+                    <input type="color" id="det-link-color" value="${escapeHtml(normalizeHexForColorInput(linkStrokeColor(l)))}" title="Connector and mid-label color" />
+                    <div class="row2">
+                        <div><label class="hint">Source box</label><input type="text" id="det-sbox" value="${escapeHtml(l.sBox || "")}" placeholder="ACL" /></div>
+                        <div><label class="hint">Target box</label><input type="text" id="det-tbox" value="${escapeHtml(l.tBox || "")}" placeholder="OHS / PL" /></div>
+                    </div>
+                    <div class="row2">
+                        <div><label class="hint">Source U/D</label><input type="text" id="det-sud" value="${escapeHtml(l.sUD || "")}" placeholder="D or U" maxlength="1" /></div>
+                        <div><label class="hint">Target U/D</label><input type="text" id="det-tud" value="${escapeHtml(l.tUD || "")}" placeholder="D or U" maxlength="1" /></div>
+                    </div>
+                    <label class="hint">Apply preset (replaces boxes/labels above)</label>
+                    <select id="det-link-preset"><option value="">— keep fields —</option>${RELATIONSHIP_PRESET_LIST.filter(o => o.key !== "").map(({ key, label }) => `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`).join("")}</select>
+                    <p><button type="button" id="det-save-link">Save relationship</button> <button type="button" class="danger" id="det-del-link">Delete</button></p>`;
+                document.getElementById("det-link-preset").onchange = (e) => {
+                    const v = e.target.value;
+                    if (!v) return;
+                    applyRelPreset(l, v);
+                    selectLink(selectedLinkIndex);
+                    renderDetail();
+                };
+                document.getElementById("det-save-link").onclick = () => {
+                    const nf = document.getElementById("det-link-from").value;
+                    const nt = document.getElementById("det-link-to").value;
+                    if (!nf || !nt || nf === nt) {
+                        alert("From and To must be two different contexts.");
+                        return;
+                    }
+                    stripRelFields(l);
+                    l.source = nf;
+                    l.target = nt;
+                    const lab = document.getElementById("det-link-label").value.trim();
+                    if (lab) l.label = lab;
+                    const sb = document.getElementById("det-sbox").value.trim();
+                    const tb = document.getElementById("det-tbox").value.trim();
+                    const su = document.getElementById("det-sud").value.trim().toUpperCase();
+                    const tu = document.getElementById("det-tud").value.trim().toUpperCase();
+                    if (sb) l.sBox = sb;
+                    if (tb) l.tBox = tb;
+                    if (su === "U" || su === "D") l.sUD = su;
+                    if (tu === "U" || tu === "D") l.tUD = tu;
+                    delete l.stroke;
+                    l.color = normalizeHexForColorInput(document.getElementById("det-link-color").value);
+                    syncGraphFromData();
+                    const newIdx = data.links.indexOf(l);
+                    if (newIdx >= 0) selectLink(newIdx);
+                    else renderDetail();
+                };
+                document.getElementById("det-del-link").onclick = () => deleteLinkAt(selectedLinkIndex);
+                return;
+            }
+
+            sec.hidden = true;
+        }
+
+        function addBoundedContextFromForm() {
+            const idRaw = document.getElementById("new-ctx-id").value.trim();
+            const label = document.getElementById("new-ctx-label").value.trim();
+            const id = idRaw || newUuidV4();
+            if (data.nodes.some(n => n.id === id)) {
+                alert("That internal id is already in use. Leave the id field empty for a new UUID, or choose another id.");
+                return;
+            }
+            const t = d3.zoomTransform(svg.node());
+            const sw = +svg.attr("width"), sh = +svg.attr("height");
+            const x = (sw / 2 - t.x) / t.k;
+            const y = (sh / 2 - t.y) / t.k;
+            const bgNew = document.getElementById("new-ctx-bg").value;
+            const txNew = document.getElementById("new-ctx-text").value;
+            const node = {
+                id,
+                label: label || "New bounded context",
+                x, y, vx: 0, vy: 0, fx: x, fy: y
+            };
+            if (bgNew && bgNew.toLowerCase() !== DEFAULT_NODE_BG) node.backgroundColor = bgNew;
+            if (txNew && txNew.toLowerCase() !== DEFAULT_NODE_TEXT) node.textColor = txNew;
+            data.nodes.push(node);
+            document.getElementById("new-ctx-id").value = "";
+            document.getElementById("new-ctx-label").value = "";
+            document.getElementById("new-ctx-bg").value = DEFAULT_NODE_BG;
+            document.getElementById("new-ctx-text").value = DEFAULT_NODE_TEXT;
+            syncGraphFromData();
+            selectNode(id);
+        }
+
+        function addRelationshipFromForm() {
+            const from = document.getElementById("new-rel-from").value;
+            const to = document.getElementById("new-rel-to").value;
+            if (!from || !to || from === to) {
+                alert("Choose two different contexts.");
+                return;
+            }
+            if (data.links.some(l => linkSourceId(l) === from && linkTargetId(l) === to)) {
+                alert("That relationship already exists.");
+                return;
+            }
+            const pattern = document.getElementById("new-rel-pattern").value;
+            const nl = { source: from, target: to };
+            applyRelPreset(nl, pattern);
+            data.links.push(nl);
+            syncGraphFromData();
+            selectLink(data.links.length - 1);
+        }
+
+        document.getElementById("list-contexts").addEventListener("click", (e) => {
+            const t = e.target;
+            if (t.dataset.action === "edit-node") {
+                selectNode(t.dataset.id);
+                return;
+            }
+            if (t.dataset.action === "del-node") {
+                deleteNodeById(t.dataset.id);
+                return;
+            }
+            const row = t.closest(".list-item");
+            if (row && row.dataset.nodeId) selectNode(row.dataset.nodeId);
+        });
+
+        document.getElementById("list-rels").addEventListener("click", (e) => {
+            const t = e.target;
+            if (t.dataset.action === "edit-link") {
+                selectLink(+t.dataset.idx);
+                return;
+            }
+            if (t.dataset.action === "del-link") {
+                deleteLinkAt(+t.dataset.idx);
+                return;
+            }
+            const row = t.closest(".list-item");
+            if (row && row.dataset.linkIdx != null) selectLink(+row.dataset.linkIdx);
+        });
+
+        document.getElementById("btn-add-ctx").addEventListener("click", addBoundedContextFromForm);
+        document.getElementById("btn-add-rel").addEventListener("click", addRelationshipFromForm);
+        document.getElementById("tab-contexts").addEventListener("click", () => setEditorPanelTab("contexts"));
+        document.getElementById("tab-relationships").addEventListener("click", () => setEditorPanelTab("relationships"));
+
+        document.addEventListener("keydown", (e) => {
+            if (e.target.matches("input, textarea, select, button")) return;
+            if (e.key !== "Delete" && e.key !== "Backspace") return;
+            e.preventDefault();
+            if (selectedNodeId) deleteNodeById(selectedNodeId);
+            else if (selectedLinkIndex >= 0) deleteLinkAt(selectedLinkIndex);
+        });
+
+        window.addEventListener("resize", () => {
+            const s = svgSize();
+            width = s.width;
+            height = s.height;
+            svg.attr("width", width).attr("height", height);
+            zoomLayer.select(".zoom-bg").attr("width", width).attr("height", height);
+            simulation.force("center", d3.forceCenter(width / 2, height / 2));
+            simulation.alpha(0.001).restart();
+        });
+
+        document.getElementById("btn-regenerate").addEventListener("click", regenerateLayout);
+        document.getElementById("btn-export").addEventListener("click", exportDiagram);
+        document.getElementById("btn-import").addEventListener("click", () => {
+            document.getElementById("import-file").click();
+        });
+        document.getElementById("import-file").addEventListener("change", (e) => {
+            const f = e.target.files && e.target.files[0];
+            e.target.value = "";
+            if (!f) return;
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    const parsed = JSON.parse(reader.result);
+                    await validateImportedContextMap(parsed);
+                    applyImportedSnapshot(parsed);
+                } catch (err) {
+                    alert(err.message || String(err));
+                }
+            };
+            reader.readAsText(f, "UTF-8");
+        });
+
+        bindLinks();
+        resolveLinks();
+        bindLinkHits();
+        renderNodes();
+        simulation.alpha(0.001).restart();
+        refreshPanel();
+    </script>
+</body>
+
+</html>

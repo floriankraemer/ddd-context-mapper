@@ -102,9 +102,12 @@
             display: flex;
             align-items: stretch;
             gap: 6px;
-            padding: 8px 10px 10px;
-            background: #fafafa;
-            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .panel-tab-pane > section:nth-of-type(2) .panel-list-filter-row {
+            padding: 6px 0 8px;
+            margin: 0;
+            border-bottom: 1px solid #eee;
         }
 
         .panel-list-filter-row input[type="search"] {
@@ -586,10 +589,6 @@
                 <button type="button" class="panel-tab" role="tab" id="tab-contexts" aria-selected="true" aria-controls="panel-contexts-pane">Contexts</button>
                 <button type="button" class="panel-tab" role="tab" id="tab-relationships" aria-selected="false" aria-controls="panel-relationships-pane">Relationships</button>
             </div>
-            <div class="panel-list-filter-row" role="search">
-                <input type="search" id="panel-list-filter" placeholder="Filter by name…" autocomplete="off" spellcheck="false" aria-label="Filter contexts and relationships by name" />
-                <button type="button" id="btn-panel-list-filter-clear" class="panel-list-filter-clear" aria-label="Clear search">×</button>
-            </div>
             <div class="panel-tab-panes">
                 <div class="panel-tab-pane" id="panel-contexts-pane" role="tabpanel" aria-labelledby="tab-contexts">
                     <section class="panel-form-section" id="ctx-form-section" aria-label="Bounded context form">
@@ -618,6 +617,10 @@
                     </section>
                     <section>
                         <h3>Contexts</h3>
+                        <div class="panel-list-filter-row" role="search">
+                            <input type="search" id="panel-list-filter-ctx" placeholder="Filter by name…" autocomplete="off" spellcheck="false" aria-label="Filter contexts by name" />
+                            <button type="button" id="btn-panel-list-filter-clear-ctx" class="panel-list-filter-clear" aria-label="Clear context search">×</button>
+                        </div>
                         <div class="list list--contexts" id="list-contexts"></div>
                     </section>
                 </div>
@@ -657,6 +660,10 @@
                     </section>
                     <section>
                         <h3>Relationships</h3>
+                        <div class="panel-list-filter-row" role="search">
+                            <input type="search" id="panel-list-filter-rel" placeholder="Filter by name…" autocomplete="off" spellcheck="false" aria-label="Filter relationships by name" />
+                            <button type="button" id="btn-panel-list-filter-clear-rel" class="panel-list-filter-clear" aria-label="Clear relationship search">×</button>
+                        </div>
                         <div class="list list--rels" id="list-rels"></div>
                     </section>
                 </div>
@@ -809,8 +816,13 @@
             );
         }
 
-        function listFilterQuery() {
-            const el = document.getElementById("panel-list-filter");
+        function listFilterQueryContexts() {
+            const el = document.getElementById("panel-list-filter-ctx");
+            return el ? el.value.trim().toLowerCase() : "";
+        }
+
+        function listFilterQueryRelationships() {
+            const el = document.getElementById("panel-list-filter-rel");
             return el ? el.value.trim().toLowerCase() : "";
         }
 
@@ -1586,16 +1598,17 @@
         }
 
         function refreshPanel() {
-            const q = listFilterQuery();
+            const qCtx = listFilterQueryContexts();
+            const qRel = listFilterQueryRelationships();
             const lc = document.getElementById("list-contexts");
-            lc.innerHTML = data.nodes.filter(n => nodeMatchesListFilter(n, q)).map(n => {
+            lc.innerHTML = data.nodes.filter(n => nodeMatchesListFilter(n, qCtx)).map(n => {
                 const active = n.id === selectedNodeId ? " active" : "";
                 return `<div class="list-item${active}" data-node-id="${escapeHtml(n.id)}"><span class="item-main" title="${escapeHtml(nodeTitleText(n))}"><span class="item-title">${escapeHtml(nodeDisplayName(n))}</span><span class="item-sub">${escapeHtml(n.id)}</span></span><span class="mini"><button type="button" data-action="edit-node" data-id="${escapeHtml(n.id)}">Edit</button><button type="button" class="danger" data-action="del-node" data-id="${escapeHtml(n.id)}">Del</button></span></div>`;
             }).join("");
 
             document.getElementById("list-rels").innerHTML = data.links
                 .map((l, i) => ({ l, i }))
-                .filter(({ l }) => linkMatchesListFilter(l, q))
+                .filter(({ l }) => linkMatchesListFilter(l, qRel))
                 .map(({ l, i }) => {
                     const sid = linkSourceId(l), tid = linkTargetId(l);
                     const ns = nodeById(sid), nt = nodeById(tid);
@@ -1883,9 +1896,16 @@
             refreshEditorForms();
         });
 
-        document.getElementById("panel-list-filter").addEventListener("input", () => refreshPanel());
-        document.getElementById("btn-panel-list-filter-clear").addEventListener("click", () => {
-            const inp = document.getElementById("panel-list-filter");
+        document.getElementById("panel-list-filter-ctx").addEventListener("input", () => refreshPanel());
+        document.getElementById("panel-list-filter-rel").addEventListener("input", () => refreshPanel());
+        document.getElementById("btn-panel-list-filter-clear-ctx").addEventListener("click", () => {
+            const inp = document.getElementById("panel-list-filter-ctx");
+            inp.value = "";
+            inp.focus();
+            refreshPanel();
+        });
+        document.getElementById("btn-panel-list-filter-clear-rel").addEventListener("click", () => {
+            const inp = document.getElementById("panel-list-filter-rel");
             inp.value = "";
             inp.focus();
             refreshPanel();

@@ -516,17 +516,6 @@
             min-height: 0;
         }
 
-        .instructions {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            font-size: 12px;
-            color: #666;
-            pointer-events: none;
-            max-width: 420px;
-            line-height: 1.35;
-        }
-
         .zoom-bg {
             cursor: grab;
         }
@@ -563,6 +552,122 @@
             background: #f4f4f4;
         }
 
+        .toolbar button.toolbar-help {
+            min-width: 34px;
+            padding: 6px 10px;
+            font-weight: 700;
+            font-size: 15px;
+            line-height: 1;
+        }
+
+        .help-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .help-overlay[hidden] {
+            display: none !important;
+        }
+
+        .help-overlay-backdrop {
+            position: absolute;
+            inset: 0;
+            border: none;
+            padding: 0;
+            margin: 0;
+            background: rgba(0, 0, 0, 0.4);
+            cursor: pointer;
+        }
+
+        .help-overlay-dialog {
+            position: relative;
+            z-index: 1;
+            max-width: 440px;
+            width: 100%;
+            max-height: min(80vh, 520px);
+            overflow: auto;
+            background: #fff;
+            border: 1px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .help-overlay-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .help-overlay-header h2 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .help-overlay-header button {
+            font: inherit;
+            font-size: 20px;
+            line-height: 1;
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            cursor: pointer;
+            border: 1px solid #333;
+            background: #fff;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .help-overlay-header button:hover {
+            background: #f4f4f4;
+        }
+
+        .help-overlay-body {
+            padding: 16px 18px 18px;
+            font-size: 13px;
+            color: #444;
+            line-height: 1.45;
+        }
+
+        .help-overlay-body p {
+            margin: 0;
+        }
+
+        .help-overlay-body .help-overlay-section-title {
+            margin: 14px 0 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #555;
+        }
+
+        .help-overlay-body .help-overlay-section-title:first-child {
+            margin-top: 0;
+        }
+
+        .help-overlay-body ul {
+            margin: 0 0 4px;
+            padding-left: 1.25em;
+        }
+
+        .help-overlay-body li {
+            margin: 0 0 6px;
+        }
+
+        .help-overlay-body li:last-child {
+            margin-bottom: 0;
+        }
+
     </style>
 </head>
 
@@ -574,13 +679,36 @@
                 <button type="button" id="btn-clear-board">Clear board</button>
                 <button type="button" id="btn-export">Export JSON</button>
                 <button type="button" id="btn-import">Import JSON…</button>
+                <button type="button" id="btn-help" class="toolbar-help" aria-label="Help" title="Help">?</button>
                 <input type="file" id="import-file" accept=".json,application/json" hidden />
             </div>
-            <div class="instructions">Scroll or pinch to zoom. Drag empty space to pan (click away from contexts and lines). Use the
-                form at the top of each sidebar tab to create or edit contexts and relationships (mode is shown in the heading).
-                Double-click a context for a quick rename prompt. Delete / Backspace removes the selection. Auto (re)arrange re-runs
-                the layout algorithm. Clear board removes all contexts and relationships. Export / Import JSON saves everything
-                including zoom.
+            <div id="help-overlay" class="help-overlay" hidden>
+                <button type="button" class="help-overlay-backdrop" id="help-overlay-backdrop" aria-label="Close help"></button>
+                <div class="help-overlay-dialog" role="dialog" aria-modal="true" aria-labelledby="help-overlay-title">
+                    <div class="help-overlay-header">
+                        <h2 id="help-overlay-title">How to use</h2>
+                        <button type="button" id="btn-help-close" aria-label="Close">×</button>
+                    </div>
+                    <div class="help-overlay-body">
+                        <p class="help-overlay-section-title">Map</p>
+                        <ul>
+                            <li>Scroll or pinch to zoom.</li>
+                            <li>Drag empty space to pan (click away from contexts and lines).</li>
+                        </ul>
+                        <p class="help-overlay-section-title">Contexts &amp; relationships</p>
+                        <ul>
+                            <li>Use the form at the top of each sidebar tab to create or edit contexts and relationships (mode is shown in the heading).</li>
+                            <li>Double-click a context for a quick rename prompt.</li>
+                            <li>Delete / Backspace removes the selection.</li>
+                        </ul>
+                        <p class="help-overlay-section-title">Data &amp; layout</p>
+                        <ul>
+                            <li>Auto (re)arrange re-runs the layout algorithm.</li>
+                            <li>Clear board removes all contexts and relationships.</li>
+                            <li>Export / Import JSON saves everything including zoom.</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
             <div id="viz"></div>
         </div>
@@ -1951,6 +2079,38 @@
             };
             reader.readAsText(f, "UTF-8");
         });
+
+        (function bindHelpOverlay() {
+            const helpOverlay = document.getElementById("help-overlay");
+            const btnHelp = document.getElementById("btn-help");
+            const btnHelpClose = document.getElementById("btn-help-close");
+            const helpBackdrop = document.getElementById("help-overlay-backdrop");
+            let helpReturnFocus = null;
+
+            function openHelp() {
+                helpReturnFocus = document.activeElement;
+                helpOverlay.hidden = false;
+                btnHelpClose.focus();
+            }
+
+            function closeHelp() {
+                helpOverlay.hidden = true;
+                const back = helpReturnFocus;
+                helpReturnFocus = null;
+                if (back && typeof back.focus === "function") back.focus();
+                else btnHelp.focus();
+            }
+
+            btnHelp.addEventListener("click", openHelp);
+            btnHelpClose.addEventListener("click", closeHelp);
+            helpBackdrop.addEventListener("click", closeHelp);
+
+            document.addEventListener("keydown", (e) => {
+                if (helpOverlay.hidden || e.key !== "Escape") return;
+                e.preventDefault();
+                closeHelp();
+            });
+        })();
 
         bindLinks();
         resolveLinks();

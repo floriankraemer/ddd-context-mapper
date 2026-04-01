@@ -1,0 +1,468 @@
+{
+  "version": 2,
+  "exportedAt": "2026-04-01T15:02:21.387Z",
+  "view": {
+    "k": 0.622437117691085,
+    "x": 143.58629842090667,
+    "y": 594.6144812702901
+  },
+  "nodes": [
+    {
+      "id": "ORD",
+      "label": "Order Management\nContext",
+      "x": 714.5344296747285,
+      "y": 382.5913823926882,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "CAT",
+      "label": "Product Catalog\nContext",
+      "x": 636.6510788009583,
+      "y": 924.6505185652699,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "INV",
+      "label": "Inventory\nContext",
+      "x": 216.86499679247328,
+      "y": 889.3496108461559,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "WHS",
+      "label": "Warehouse / WMS\nContext",
+      "x": -29.86053466796875,
+      "y": 1056.147705078125,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "SHP",
+      "label": "Shipping & Carriers\nContext",
+      "x": 456.27102570897074,
+      "y": 667.0494908967811,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "PAY",
+      "label": "Payments\nContext",
+      "x": 228.80014038085938,
+      "y": 100.227783203125,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "FRD",
+      "label": "Fraud & Risk\nContext",
+      "x": 416.77093505859375,
+      "y": -123.08795166015625,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "PRC",
+      "label": "Pricing & Promotions\nContext",
+      "x": 1218.4583740234375,
+      "y": 527.5802001953125,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "SUB",
+      "label": "Subscriptions &\nEntitlements",
+      "x": 700.9784166726208,
+      "y": 104.33853383150392,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "CRM",
+      "label": "Customer CRM /\n360 Profile",
+      "x": 1061.0126953125,
+      "y": -150.3999481201172,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "IAM",
+      "label": "Identity & Access\nContext",
+      "x": 673.8250122070312,
+      "y": -409.06060791015625,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "NTF",
+      "label": "Notifications\nContext",
+      "x": 1052.979736328125,
+      "y": 238.39434814453125,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "ANL",
+      "label": "Analytics &\nExperimentation",
+      "x": 860.1015882664533,
+      "y": 661.2050349852872,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "REV",
+      "label": "Reviews & UGC\nContext",
+      "x": 675.5538655036386,
+      "y": 1164.8154522016796,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "VND",
+      "label": "Vendor / Supplier\nPortal",
+      "x": 355.7205810546875,
+      "y": 1139.690185546875,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "RFD",
+      "label": "Returns & Refunds\nContext",
+      "x": 156.50367736816406,
+      "y": 485.80889892578125,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "TAX",
+      "label": "Tax & Compliance\nEngine",
+      "x": 387.85235595703125,
+      "y": 349.2489318847656,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "CMP",
+      "label": "Privacy & Consent\nRecords",
+      "x": 1105.9971923828125,
+      "y": -349.6168518066406,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "LOY",
+      "label": "Loyalty & Rewards\nContext",
+      "x": 1297.18115234375,
+      "y": 190.19671630859375,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    },
+    {
+      "id": "SRC",
+      "label": "Search & Discovery\nContext",
+      "x": 1052.979736328125,
+      "y": 954.9326171875,
+      "backgroundColor": "#ffffff",
+      "textColor": "#000000"
+    }
+  ],
+  "links": [
+    {
+      "source": "ORD",
+      "target": "CAT",
+      "color": "#000000",
+      "label": "Customer/Supplier",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "ORD",
+      "target": "PAY",
+      "color": "#000000",
+      "label": "Customer/Supplier",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "ORD",
+      "target": "FRD",
+      "color": "#000000",
+      "label": "Customer/Supplier",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "ORD",
+      "target": "PRC",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "ORD",
+      "target": "CRM",
+      "color": "#000000",
+      "sBox": "CONFORMIST",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "ORD",
+      "target": "NTF",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "ACL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "ORD",
+      "target": "SUB",
+      "color": "#000000",
+      "label": "Customer/Supplier",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "CAT",
+      "target": "INV",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "ACL",
+      "sUD": "U",
+      "tUD": "D"
+    },
+    {
+      "source": "CAT",
+      "target": "SRC",
+      "color": "#000000",
+      "label": "Partnership"
+    },
+    {
+      "source": "CAT",
+      "target": "REV",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "ACL",
+      "sUD": "U",
+      "tUD": "D"
+    },
+    {
+      "source": "CAT",
+      "target": "VND",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "INV",
+      "target": "WHS",
+      "color": "#000000",
+      "label": "Customer/Supplier",
+      "sUD": "U",
+      "tUD": "D"
+    },
+    {
+      "source": "INV",
+      "target": "SHP",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "ACL",
+      "sUD": "U",
+      "tUD": "D"
+    },
+    {
+      "source": "WHS",
+      "target": "INV",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "SHP",
+      "target": "ORD",
+      "color": "#000000",
+      "sBox": "CONFORMIST",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "PAY",
+      "target": "TAX",
+      "color": "#000000",
+      "label": "Shared Kernel"
+    },
+    {
+      "source": "PAY",
+      "target": "FRD",
+      "color": "#000000",
+      "label": "Partnership"
+    },
+    {
+      "source": "PAY",
+      "target": "RFD",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "ACL",
+      "sUD": "U",
+      "tUD": "D"
+    },
+    {
+      "source": "SUB",
+      "target": "PAY",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "SUB",
+      "target": "CRM",
+      "color": "#000000",
+      "label": "Customer/Supplier",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "CRM",
+      "target": "IAM",
+      "color": "#000000",
+      "label": "Customer/Supplier",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "CRM",
+      "target": "CMP",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "ACL",
+      "sUD": "U",
+      "tUD": "D"
+    },
+    {
+      "source": "IAM",
+      "target": "CMP",
+      "color": "#000000",
+      "label": "Partnership"
+    },
+    {
+      "source": "NTF",
+      "target": "CRM",
+      "color": "#000000",
+      "sBox": "CONFORMIST",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "ANL",
+      "target": "ORD",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "CONFORMIST",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "ANL",
+      "target": "SRC",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "CONFORMIST",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "RFD",
+      "target": "ORD",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "ACL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "RFD",
+      "target": "INV",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "LOY",
+      "target": "CRM",
+      "color": "#000000",
+      "label": "Customer/Supplier",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "LOY",
+      "target": "PRC",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "SRC",
+      "target": "CAT",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "SRC",
+      "target": "PRC",
+      "color": "#000000",
+      "sBox": "CONFORMIST",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "VND",
+      "target": "INV",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "ACL",
+      "sUD": "U",
+      "tUD": "D"
+    },
+    {
+      "source": "FRD",
+      "target": "IAM",
+      "color": "#000000",
+      "sBox": "ACL",
+      "tBox": "OHS / PL",
+      "sUD": "D",
+      "tUD": "U"
+    },
+    {
+      "source": "TAX",
+      "target": "ORD",
+      "color": "#000000",
+      "sBox": "OHS / PL",
+      "tBox": "CONFORMIST",
+      "sUD": "U",
+      "tUD": "D"
+    }
+  ]
+}

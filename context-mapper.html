@@ -337,12 +337,30 @@
             font-size: 11px;
         }
 
-        .panel #detail-section {
+        .panel .panel-form-section {
             flex-shrink: 0;
-            margin-top: 0;
-            padding: 12px 14px 24px;
-            border-top: 1px solid #ddd;
-            background: #fafafa;
+            padding-bottom: 16px;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .panel .panel-form-mode {
+            margin: -4px 0 12px;
+            font-size: 12px;
+            color: #555;
+            line-height: 1.45;
+        }
+
+        .panel .panel-form-secondary-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .panel .panel-form-secondary-actions button {
+            margin-bottom: 0;
         }
 
         .panel-footer {
@@ -517,10 +535,11 @@
                 <button type="button" id="btn-import">Import JSON…</button>
                 <input type="file" id="import-file" accept=".json,application/json" hidden />
             </div>
-            <div class="instructions">Scroll or pinch to zoom. Drag empty space to pan (click away from contexts and lines). Click a
-                context or relationship to edit in the panel. Double-click a context for a quick rename prompt. Delete / Backspace
-                removes the selection. Auto (re)arrange re-runs the layout algorithm. Clear board removes all contexts and
-                relationships. Export / Import JSON saves everything including zoom.
+            <div class="instructions">Scroll or pinch to zoom. Drag empty space to pan (click away from contexts and lines). Use the
+                form at the top of each sidebar tab to create or edit contexts and relationships (mode is shown in the heading).
+                Double-click a context for a quick rename prompt. Delete / Backspace removes the selection. Auto (re)arrange re-runs
+                the layout algorithm. Clear board removes all contexts and relationships. Export / Import JSON saves everything
+                including zoom.
             </div>
             <div id="viz"></div>
         </div>
@@ -531,22 +550,29 @@
             </div>
             <div class="panel-tab-panes">
                 <div class="panel-tab-pane" id="panel-contexts-pane" role="tabpanel" aria-labelledby="tab-contexts">
-                    <section>
-                        <h3>New bounded context</h3>
-                        <input type="text" id="new-ctx-id" placeholder="Optional internal id (UUID v4 if empty)" maxlength="128" autocomplete="off" spellcheck="false" />
-                        <p class="hint" style="margin: -4px 0 8px;">Leave id blank to auto-generate a UUID. Use a custom id only if you want a stable short code for JSON or APIs.</p>
-                        <textarea id="new-ctx-label" placeholder="Display name (line breaks allowed) — shown on the map and in lists"></textarea>
-                        <div class="color-fields" role="group" aria-label="Default colors for new context">
+                    <section class="panel-form-section" id="ctx-form-section" aria-label="Bounded context form">
+                        <h3 id="ctx-form-heading">New bounded context</h3>
+                        <p class="panel-form-mode" id="ctx-form-mode-line" aria-live="polite">Create a new context on the map.</p>
+                        <label class="hint" for="form-ctx-id">Internal id</label>
+                        <input type="text" id="form-ctx-id" placeholder="Optional (UUID v4 if empty)" maxlength="128" autocomplete="off" spellcheck="false" />
+                        <p class="hint" id="form-ctx-id-hint" style="margin: -4px 0 8px;">Leave id blank to auto-generate a UUID. Use a custom id only if you want a stable short code for JSON or APIs.</p>
+                        <label class="hint" for="form-ctx-label">Display name (line breaks allowed)</label>
+                        <textarea id="form-ctx-label" placeholder="Shown on the map and in lists"></textarea>
+                        <div class="color-fields" role="group" aria-label="Context colors">
                             <div class="color-field">
-                                <label class="hint" for="new-ctx-bg">Background</label>
-                                <input type="color" id="new-ctx-bg" value="#ffffff" title="Ellipse fill" />
+                                <label class="hint" for="form-ctx-bg">Background</label>
+                                <input type="color" id="form-ctx-bg" value="#ffffff" title="Ellipse fill" />
                             </div>
                             <div class="color-field">
-                                <label class="hint" for="new-ctx-text">Text</label>
-                                <input type="color" id="new-ctx-text" value="#000000" title="Label color" />
+                                <label class="hint" for="form-ctx-text">Text</label>
+                                <input type="color" id="form-ctx-text" value="#000000" title="Label color" />
                             </div>
                         </div>
-                        <button type="button" id="btn-add-ctx" class="panel-btn-block">Add context</button>
+                        <button type="button" id="btn-ctx-submit" class="panel-btn-block">Add context</button>
+                        <div id="ctx-edit-only-actions" class="panel-form-secondary-actions" hidden>
+                            <button type="button" id="btn-ctx-new">New context</button>
+                            <button type="button" class="danger" id="btn-ctx-delete">Delete context</button>
+                        </div>
                     </section>
                     <section>
                         <h3>Contexts</h3>
@@ -554,14 +580,38 @@
                     </section>
                 </div>
                 <div class="panel-tab-pane" id="panel-relationships-pane" role="tabpanel" aria-labelledby="tab-relationships" hidden>
-                    <section>
-                        <h3>New relationship</h3>
+                    <section class="panel-form-section" id="rel-form-section" aria-label="Relationship form">
+                        <h3 id="rel-form-heading">New relationship</h3>
+                        <p class="panel-form-mode" id="rel-form-mode-line" aria-live="polite">Connect two contexts on the map.</p>
                         <div class="row2">
-                            <select id="new-rel-from"></select>
-                            <select id="new-rel-to"></select>
+                            <div>
+                                <label class="hint" for="form-rel-from">From</label>
+                                <select id="form-rel-from"></select>
+                            </div>
+                            <div>
+                                <label class="hint" for="form-rel-to">To</label>
+                                <select id="form-rel-to"></select>
+                            </div>
                         </div>
-                        <select id="new-rel-pattern"></select>
-                        <button type="button" id="btn-add-rel">Add relationship</button>
+                        <label class="hint" for="form-rel-pattern" id="form-rel-pattern-label">DDD pattern (optional)</label>
+                        <select id="form-rel-pattern"></select>
+                        <label class="hint" for="form-rel-label">Relation label (optional)</label>
+                        <input type="text" id="form-rel-label" placeholder="e.g. Customer/Supplier" />
+                        <label class="hint" for="form-rel-color">Line &amp; relation label color</label>
+                        <input type="color" id="form-rel-color" value="#000000" title="Connector and mid-label color" />
+                        <div class="row2">
+                            <div><label class="hint" for="form-rel-sbox">Source box</label><input type="text" id="form-rel-sbox" placeholder="ACL" /></div>
+                            <div><label class="hint" for="form-rel-tbox">Target box</label><input type="text" id="form-rel-tbox" placeholder="OHS / PL" /></div>
+                        </div>
+                        <div class="row2">
+                            <div><label class="hint" for="form-rel-sud">Source U/D</label><input type="text" id="form-rel-sud" placeholder="D or U" maxlength="1" /></div>
+                            <div><label class="hint" for="form-rel-tud">Target U/D</label><input type="text" id="form-rel-tud" placeholder="D or U" maxlength="1" /></div>
+                        </div>
+                        <button type="button" id="btn-rel-submit" class="panel-btn-block">Add relationship</button>
+                        <div id="rel-edit-only-actions" class="panel-form-secondary-actions" hidden>
+                            <button type="button" id="btn-rel-new">New relationship</button>
+                            <button type="button" class="danger" id="btn-rel-delete">Delete relationship</button>
+                        </div>
                     </section>
                     <section>
                         <h3>Relationships</h3>
@@ -569,10 +619,6 @@
                     </section>
                 </div>
             </div>
-            <section id="detail-section" hidden>
-                <h3 id="detail-title">Selection</h3>
-                <div id="detail-body"></div>
-            </section>
             <footer class="panel-footer">
                 <a href="https://florian-kraemer.net/" target="_blank" rel="noopener noreferrer">florian-kraemer.net</a>
                 <span class="panel-footer-sep" aria-hidden="true">·</span>
@@ -1395,12 +1441,16 @@
             paneRel.hidden = isCtx;
         }
 
+        function refreshEditorForms() {
+            renderContextForm();
+            renderRelationshipForm();
+        }
+
         function selectNode(id) {
             selectedNodeId = id;
             selectedLinkIndex = -1;
             setEditorPanelTab("contexts");
             refreshPanel();
-            renderDetail();
             simulation.alpha(0.001).restart();
         }
 
@@ -1409,14 +1459,12 @@
             selectedNodeId = null;
             setEditorPanelTab("relationships");
             refreshPanel();
-            renderDetail();
             simulation.alpha(0.001).restart();
         }
 
         function clearSelection() {
             selectedNodeId = null;
             selectedLinkIndex = -1;
-            document.getElementById("detail-section").hidden = true;
             refreshPanel();
             simulation.alpha(0.001).restart();
         }
@@ -1460,169 +1508,229 @@
             const opts = nodesSortedByDisplayName().map(n =>
                 `<option value="${escapeHtml(n.id)}" title="${escapeHtml(nodeTitleText(n))}">${escapeHtml(truncateText(nodeDisplayName(n), 76))}</option>`
             ).join("");
-            document.getElementById("new-rel-from").innerHTML = '<option value="">From…</option>' + opts;
-            document.getElementById("new-rel-to").innerHTML = '<option value="">To…</option>' + opts;
-            fillRelationshipPresetSelect(document.getElementById("new-rel-pattern"));
+            document.getElementById("form-rel-from").innerHTML = '<option value="">From…</option>' + opts;
+            document.getElementById("form-rel-to").innerHTML = '<option value="">To…</option>' + opts;
+            refreshEditorForms();
         }
 
-        function renderDetail() {
-            const sec = document.getElementById("detail-section");
-            const body = document.getElementById("detail-body");
-            const title = document.getElementById("detail-title");
-            body.innerHTML = "";
+        function relationshipPresetApplySelectHtml() {
+            return '<option value="">— keep fields —</option>' + RELATIONSHIP_PRESET_LIST.filter(o => o.key !== "").map(({ key, label }) =>
+                `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`
+            ).join("");
+        }
 
-            if (selectedNodeId) {
-                const n = data.nodes.find(x => x.id === selectedNodeId);
-                if (!n) {
-                    sec.hidden = true;
-                    return;
-                }
-                sec.hidden = false;
-                title.textContent = "Bounded context";
-                body.innerHTML = `<label class="hint">Internal id (read-only)</label><input type="text" id="det-node-id" value="${escapeHtml(n.id)}" readonly style="background:#f0f0f0;margin-bottom:10px" />
-                    <label class="hint">Display name (line breaks ok)</label><textarea id="det-node-label" style="min-height:72px">${escapeHtml(n.label)}</textarea>
-                    <div class="color-fields" role="group" aria-label="Context colors">
-                        <div class="color-field">
-                            <label class="hint" for="det-node-bg">Background color</label>
-                            <input type="color" id="det-node-bg" value="${escapeHtml(nodeBackgroundColor(n))}" title="Ellipse fill" />
-                        </div>
-                        <div class="color-field">
-                            <label class="hint" for="det-node-text">Text color</label>
-                            <input type="color" id="det-node-text" value="${escapeHtml(nodeTextColor(n))}" title="Label color" />
-                        </div>
-                    </div>
-                    <p><button type="button" id="det-save-node">Save</button> <button type="button" class="danger" id="det-del-node">Delete context</button></p>`;
-                document.getElementById("det-save-node").onclick = () => {
-                    n.label = document.getElementById("det-node-label").value;
-                    const bg = document.getElementById("det-node-bg").value;
-                    const tx = document.getElementById("det-node-text").value;
-                    if (bg && bg.toLowerCase() !== DEFAULT_NODE_BG) n.backgroundColor = bg;
-                    else delete n.backgroundColor;
-                    if (tx && tx.toLowerCase() !== DEFAULT_NODE_TEXT) n.textColor = tx;
-                    else delete n.textColor;
+        function renderContextForm() {
+            const heading = document.getElementById("ctx-form-heading");
+            const modeLine = document.getElementById("ctx-form-mode-line");
+            const idInput = document.getElementById("form-ctx-id");
+            const idHint = document.getElementById("form-ctx-id-hint");
+            const labelTa = document.getElementById("form-ctx-label");
+            const bgIn = document.getElementById("form-ctx-bg");
+            const txIn = document.getElementById("form-ctx-text");
+            const btnSubmit = document.getElementById("btn-ctx-submit");
+            const editActions = document.getElementById("ctx-edit-only-actions");
+
+            const n = selectedNodeId ? data.nodes.find(x => x.id === selectedNodeId) : null;
+
+            if (n) {
+                heading.textContent = "Edit bounded context";
+                modeLine.textContent = `Editing · ${truncateText(nodeDisplayName(n), 56)} (${n.id})`;
+                idInput.value = n.id;
+                idInput.readOnly = true;
+                idInput.style.background = "#f0f0f0";
+                idHint.hidden = true;
+                labelTa.value = n.label;
+                bgIn.value = nodeBackgroundColor(n);
+                txIn.value = nodeTextColor(n);
+                btnSubmit.textContent = "Save changes";
+                editActions.hidden = false;
+            } else {
+                heading.textContent = "New bounded context";
+                modeLine.textContent = "Create a new context on the map.";
+                idInput.value = "";
+                idInput.readOnly = false;
+                idInput.style.background = "";
+                idHint.hidden = false;
+                labelTa.value = "";
+                bgIn.value = DEFAULT_NODE_BG;
+                txIn.value = DEFAULT_NODE_TEXT;
+                btnSubmit.textContent = "Add context";
+                editActions.hidden = true;
+            }
+
+            btnSubmit.onclick = () => {
+                const cur = selectedNodeId ? data.nodes.find(x => x.id === selectedNodeId) : null;
+                if (cur) {
+                    cur.label = labelTa.value;
+                    const bg = bgIn.value;
+                    const tx = txIn.value;
+                    if (bg && bg.toLowerCase() !== DEFAULT_NODE_BG) cur.backgroundColor = bg;
+                    else delete cur.backgroundColor;
+                    if (tx && tx.toLowerCase() !== DEFAULT_NODE_TEXT) cur.textColor = tx;
+                    else delete cur.textColor;
                     renderNodes();
                     simulation.alpha(0.3).restart();
                     refreshPanel();
-                    renderDetail();
+                    return;
+                }
+                const idRaw = idInput.value.trim();
+                const label = labelTa.value.trim();
+                const id = idRaw || newUuidV4();
+                if (data.nodes.some(nn => nn.id === id)) {
+                    alert("That internal id is already in use. Leave the id field empty for a new UUID, or choose another id.");
+                    return;
+                }
+                const t = d3.zoomTransform(svg.node());
+                const sw = +svg.attr("width"), sh = +svg.attr("height");
+                const x = (sw / 2 - t.x) / t.k;
+                const y = (sh / 2 - t.y) / t.k;
+                const bgNew = bgIn.value;
+                const txNew = txIn.value;
+                const node = {
+                    id,
+                    label: label || "New bounded context",
+                    x, y, vx: 0, vy: 0, fx: x, fy: y
                 };
-                document.getElementById("det-del-node").onclick = () => deleteNodeById(n.id);
-                return;
-            }
+                if (bgNew && bgNew.toLowerCase() !== DEFAULT_NODE_BG) node.backgroundColor = bgNew;
+                if (txNew && txNew.toLowerCase() !== DEFAULT_NODE_TEXT) node.textColor = txNew;
+                data.nodes.push(node);
+                syncGraphFromData();
+                selectNode(id);
+            };
 
-            if (selectedLinkIndex >= 0 && selectedLinkIndex < data.links.length) {
-                const l = data.links[selectedLinkIndex];
-                sec.hidden = false;
-                title.textContent = "Relationship";
-                const from = linkSourceId(l);
-                const to = linkTargetId(l);
-                const opts = cur => nodesSortedByDisplayName().map(n =>
-                    `<option value="${escapeHtml(n.id)}"${n.id === cur ? " selected" : ""} title="${escapeHtml(nodeTitleText(n))}">${escapeHtml(truncateText(nodeDisplayName(n), 72))}</option>`
-                ).join("");
-                body.innerHTML = `
-                    <label class="hint">From (context name)</label><select id="det-link-from">${opts(from)}</select>
-                    <label class="hint">To (context name)</label><select id="det-link-to">${opts(to)}</select>
-                    <label class="hint">Relation label (optional)</label><input type="text" id="det-link-label" value="${escapeHtml(l.label || "")}" placeholder="e.g. Customer/Supplier" />
-                    <label class="hint" for="det-link-color">Line &amp; relation label color</label>
-                    <input type="color" id="det-link-color" value="${escapeHtml(normalizeHexForColorInput(linkStrokeColor(l)))}" title="Connector and mid-label color" />
-                    <div class="row2">
-                        <div><label class="hint">Source box</label><input type="text" id="det-sbox" value="${escapeHtml(l.sBox || "")}" placeholder="ACL" /></div>
-                        <div><label class="hint">Target box</label><input type="text" id="det-tbox" value="${escapeHtml(l.tBox || "")}" placeholder="OHS / PL" /></div>
-                    </div>
-                    <div class="row2">
-                        <div><label class="hint">Source U/D</label><input type="text" id="det-sud" value="${escapeHtml(l.sUD || "")}" placeholder="D or U" maxlength="1" /></div>
-                        <div><label class="hint">Target U/D</label><input type="text" id="det-tud" value="${escapeHtml(l.tUD || "")}" placeholder="D or U" maxlength="1" /></div>
-                    </div>
-                    <label class="hint">Apply preset (replaces boxes/labels above)</label>
-                    <select id="det-link-preset"><option value="">— keep fields —</option>${RELATIONSHIP_PRESET_LIST.filter(o => o.key !== "").map(({ key, label }) => `<option value="${escapeHtml(key)}">${escapeHtml(label)}</option>`).join("")}</select>
-                    <p><button type="button" id="det-save-link">Save relationship</button> <button type="button" class="danger" id="det-del-link">Delete</button></p>`;
-                document.getElementById("det-link-preset").onchange = (e) => {
+            document.getElementById("btn-ctx-new").onclick = () => clearSelection();
+            document.getElementById("btn-ctx-delete").onclick = () => {
+                const id = selectedNodeId;
+                if (id) deleteNodeById(id);
+            };
+        }
+
+        /** When adding a link: only overlay non-empty form fields; keep preset-filled label/boxes if inputs are blank. */
+        function mergeNewRelationshipOptionalFieldsFromForm(l) {
+            const lab = document.getElementById("form-rel-label").value.trim();
+            if (lab) l.label = lab;
+            const sb = document.getElementById("form-rel-sbox").value.trim();
+            if (sb) l.sBox = sb;
+            const tb = document.getElementById("form-rel-tbox").value.trim();
+            if (tb) l.tBox = tb;
+            const su = document.getElementById("form-rel-sud").value.trim().toUpperCase();
+            if (su === "U" || su === "D") l.sUD = su;
+            const tu = document.getElementById("form-rel-tud").value.trim().toUpperCase();
+            if (tu === "U" || tu === "D") l.tUD = tu;
+            delete l.stroke;
+            l.color = normalizeHexForColorInput(document.getElementById("form-rel-color").value);
+        }
+
+        function renderRelationshipForm() {
+            const heading = document.getElementById("rel-form-heading");
+            const modeLine = document.getElementById("rel-form-mode-line");
+            const patternEl = document.getElementById("form-rel-pattern");
+            const patternLabel = document.getElementById("form-rel-pattern-label");
+            const btnSubmit = document.getElementById("btn-rel-submit");
+            const editActions = document.getElementById("rel-edit-only-actions");
+
+            const editing = selectedLinkIndex >= 0 && selectedLinkIndex < data.links.length;
+            const l = editing ? data.links[selectedLinkIndex] : null;
+
+            if (l) {
+                heading.textContent = "Edit relationship";
+                const sid = linkSourceId(l), tid = linkTargetId(l);
+                const ns = nodeById(sid), nt = nodeById(tid);
+                modeLine.textContent = `Editing · ${ns ? truncateText(nodeDisplayName(ns), 28) : sid} → ${nt ? truncateText(nodeDisplayName(nt), 28) : tid}`;
+                document.getElementById("form-rel-from").value = sid;
+                document.getElementById("form-rel-to").value = tid;
+                document.getElementById("form-rel-label").value = l.label || "";
+                document.getElementById("form-rel-color").value = normalizeHexForColorInput(linkStrokeColor(l));
+                document.getElementById("form-rel-sbox").value = l.sBox || "";
+                document.getElementById("form-rel-tbox").value = l.tBox || "";
+                document.getElementById("form-rel-sud").value = l.sUD || "";
+                document.getElementById("form-rel-tud").value = l.tUD || "";
+                patternLabel.textContent = "Apply preset (replaces boxes/labels below)";
+                patternEl.innerHTML = relationshipPresetApplySelectHtml();
+                patternEl.value = "";
+                patternEl.onchange = (e) => {
                     const v = e.target.value;
                     if (!v) return;
-                    applyRelPreset(l, v);
+                    const link = data.links[selectedLinkIndex];
+                    if (!link) return;
+                    applyRelPreset(link, v);
+                    e.target.value = "";
                     selectLink(selectedLinkIndex);
-                    renderDetail();
                 };
-                document.getElementById("det-save-link").onclick = () => {
-                    const nf = document.getElementById("det-link-from").value;
-                    const nt = document.getElementById("det-link-to").value;
+                btnSubmit.textContent = "Save changes";
+                editActions.hidden = false;
+            } else {
+                heading.textContent = "New relationship";
+                modeLine.textContent = "Create a link between two contexts.";
+                document.getElementById("form-rel-from").value = "";
+                document.getElementById("form-rel-to").value = "";
+                document.getElementById("form-rel-label").value = "";
+                document.getElementById("form-rel-color").value = DEFAULT_LINK_COLOR;
+                document.getElementById("form-rel-sbox").value = "";
+                document.getElementById("form-rel-tbox").value = "";
+                document.getElementById("form-rel-sud").value = "";
+                document.getElementById("form-rel-tud").value = "";
+                patternLabel.textContent = "DDD pattern (optional)";
+                fillRelationshipPresetSelect(patternEl, "");
+                patternEl.onchange = null;
+                btnSubmit.textContent = "Add relationship";
+                editActions.hidden = true;
+            }
+
+            btnSubmit.onclick = () => {
+                const cur = selectedLinkIndex >= 0 && selectedLinkIndex < data.links.length ? data.links[selectedLinkIndex] : null;
+                if (cur) {
+                    const nf = document.getElementById("form-rel-from").value;
+                    const nt = document.getElementById("form-rel-to").value;
                     if (!nf || !nt || nf === nt) {
                         alert("From and To must be two different contexts.");
                         return;
                     }
-                    stripRelFields(l);
-                    l.source = nf;
-                    l.target = nt;
-                    const lab = document.getElementById("det-link-label").value.trim();
-                    if (lab) l.label = lab;
-                    const sb = document.getElementById("det-sbox").value.trim();
-                    const tb = document.getElementById("det-tbox").value.trim();
-                    const su = document.getElementById("det-sud").value.trim().toUpperCase();
-                    const tu = document.getElementById("det-tud").value.trim().toUpperCase();
-                    if (sb) l.sBox = sb;
-                    if (tb) l.tBox = tb;
-                    if (su === "U" || su === "D") l.sUD = su;
-                    if (tu === "U" || tu === "D") l.tUD = tu;
-                    delete l.stroke;
-                    l.color = normalizeHexForColorInput(document.getElementById("det-link-color").value);
+                    stripRelFields(cur);
+                    cur.source = nf;
+                    cur.target = nt;
+                    const lab = document.getElementById("form-rel-label").value.trim();
+                    if (lab) cur.label = lab;
+                    else delete cur.label;
+                    const sb = document.getElementById("form-rel-sbox").value.trim();
+                    const tb = document.getElementById("form-rel-tbox").value.trim();
+                    const su = document.getElementById("form-rel-sud").value.trim().toUpperCase();
+                    const tu = document.getElementById("form-rel-tud").value.trim().toUpperCase();
+                    if (sb) cur.sBox = sb; else delete cur.sBox;
+                    if (tb) cur.tBox = tb; else delete cur.tBox;
+                    if (su === "U" || su === "D") cur.sUD = su; else delete cur.sUD;
+                    if (tu === "U" || tu === "D") cur.tUD = tu; else delete cur.tUD;
+                    delete cur.stroke;
+                    cur.color = normalizeHexForColorInput(document.getElementById("form-rel-color").value);
                     syncGraphFromData();
-                    const newIdx = data.links.indexOf(l);
+                    const newIdx = data.links.indexOf(cur);
                     if (newIdx >= 0) selectLink(newIdx);
-                    else renderDetail();
-                };
-                document.getElementById("det-del-link").onclick = () => deleteLinkAt(selectedLinkIndex);
-                return;
-            }
-
-            sec.hidden = true;
-        }
-
-        function addBoundedContextFromForm() {
-            const idRaw = document.getElementById("new-ctx-id").value.trim();
-            const label = document.getElementById("new-ctx-label").value.trim();
-            const id = idRaw || newUuidV4();
-            if (data.nodes.some(n => n.id === id)) {
-                alert("That internal id is already in use. Leave the id field empty for a new UUID, or choose another id.");
-                return;
-            }
-            const t = d3.zoomTransform(svg.node());
-            const sw = +svg.attr("width"), sh = +svg.attr("height");
-            const x = (sw / 2 - t.x) / t.k;
-            const y = (sh / 2 - t.y) / t.k;
-            const bgNew = document.getElementById("new-ctx-bg").value;
-            const txNew = document.getElementById("new-ctx-text").value;
-            const node = {
-                id,
-                label: label || "New bounded context",
-                x, y, vx: 0, vy: 0, fx: x, fy: y
+                    else refreshPanel();
+                    return;
+                }
+                const from = document.getElementById("form-rel-from").value;
+                const to = document.getElementById("form-rel-to").value;
+                if (!from || !to || from === to) {
+                    alert("Choose two different contexts.");
+                    return;
+                }
+                if (data.links.some(x => linkSourceId(x) === from && linkTargetId(x) === to)) {
+                    alert("That relationship already exists.");
+                    return;
+                }
+                const pattern = document.getElementById("form-rel-pattern").value;
+                const nl = { source: from, target: to };
+                applyRelPreset(nl, pattern);
+                mergeNewRelationshipOptionalFieldsFromForm(nl);
+                data.links.push(nl);
+                syncGraphFromData();
+                selectLink(data.links.length - 1);
             };
-            if (bgNew && bgNew.toLowerCase() !== DEFAULT_NODE_BG) node.backgroundColor = bgNew;
-            if (txNew && txNew.toLowerCase() !== DEFAULT_NODE_TEXT) node.textColor = txNew;
-            data.nodes.push(node);
-            document.getElementById("new-ctx-id").value = "";
-            document.getElementById("new-ctx-label").value = "";
-            document.getElementById("new-ctx-bg").value = DEFAULT_NODE_BG;
-            document.getElementById("new-ctx-text").value = DEFAULT_NODE_TEXT;
-            syncGraphFromData();
-            selectNode(id);
-        }
 
-        function addRelationshipFromForm() {
-            const from = document.getElementById("new-rel-from").value;
-            const to = document.getElementById("new-rel-to").value;
-            if (!from || !to || from === to) {
-                alert("Choose two different contexts.");
-                return;
-            }
-            if (data.links.some(l => linkSourceId(l) === from && linkTargetId(l) === to)) {
-                alert("That relationship already exists.");
-                return;
-            }
-            const pattern = document.getElementById("new-rel-pattern").value;
-            const nl = { source: from, target: to };
-            applyRelPreset(nl, pattern);
-            data.links.push(nl);
-            syncGraphFromData();
-            selectLink(data.links.length - 1);
+            document.getElementById("btn-rel-new").onclick = () => clearSelection();
+            document.getElementById("btn-rel-delete").onclick = () => {
+                if (selectedLinkIndex >= 0) deleteLinkAt(selectedLinkIndex);
+            };
         }
 
         document.getElementById("list-contexts").addEventListener("click", (e) => {
@@ -1653,10 +1761,14 @@
             if (row && row.dataset.linkIdx != null) selectLink(+row.dataset.linkIdx);
         });
 
-        document.getElementById("btn-add-ctx").addEventListener("click", addBoundedContextFromForm);
-        document.getElementById("btn-add-rel").addEventListener("click", addRelationshipFromForm);
-        document.getElementById("tab-contexts").addEventListener("click", () => setEditorPanelTab("contexts"));
-        document.getElementById("tab-relationships").addEventListener("click", () => setEditorPanelTab("relationships"));
+        document.getElementById("tab-contexts").addEventListener("click", () => {
+            setEditorPanelTab("contexts");
+            refreshEditorForms();
+        });
+        document.getElementById("tab-relationships").addEventListener("click", () => {
+            setEditorPanelTab("relationships");
+            refreshEditorForms();
+        });
 
         document.addEventListener("keydown", (e) => {
             if (e.target.matches("input, textarea, select, button")) return;

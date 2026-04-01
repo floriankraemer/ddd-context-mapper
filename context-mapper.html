@@ -512,14 +512,15 @@
         <div class="main">
             <div class="toolbar">
                 <button type="button" id="btn-regenerate">Auto (re)arrange</button>
+                <button type="button" id="btn-clear-board">Clear board</button>
                 <button type="button" id="btn-export">Export JSON</button>
                 <button type="button" id="btn-import">Import JSON…</button>
                 <input type="file" id="import-file" accept=".json,application/json" hidden />
             </div>
             <div class="instructions">Scroll or pinch to zoom. Drag empty space to pan (click away from contexts and lines). Click a
                 context or relationship to edit in the panel. Double-click a context for a quick rename prompt. Delete / Backspace
-                removes the selection. Auto (re)arrange re-runs the layout algorithm. Export / Import JSON saves everything
-                including zoom.
+                removes the selection. Auto (re)arrange re-runs the layout algorithm. Clear board removes all contexts and
+                relationships. Export / Import JSON saves everything including zoom.
             </div>
             <div id="viz"></div>
         </div>
@@ -1300,6 +1301,19 @@
             refreshPanel();
         }
 
+        function clearBoard() {
+            if (!data.nodes.length && !data.links.length) return;
+            if (!confirm("Clear the entire map? All bounded contexts and relationships will be removed.")) return;
+            data.nodes = [];
+            data.links = [];
+            clearSelection();
+            const w = +svg.attr("width") || window.innerWidth;
+            const h = +svg.attr("height") || window.innerHeight;
+            simulation.force("center", d3.forceCenter(w / 2, h / 2));
+            svg.call(zoom.transform, d3.zoomIdentity);
+            syncGraphFromData();
+        }
+
         function syncGraphFromData() {
             resolveLinks();
             simulation.nodes(data.nodes);
@@ -1663,6 +1677,7 @@
         });
 
         document.getElementById("btn-regenerate").addEventListener("click", regenerateLayout);
+        document.getElementById("btn-clear-board").addEventListener("click", clearBoard);
         document.getElementById("btn-export").addEventListener("click", exportDiagram);
         document.getElementById("btn-import").addEventListener("click", () => {
             document.getElementById("import-file").click();

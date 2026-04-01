@@ -1,4 +1,4 @@
-# DDD Context Mapper (Proof of Concept)
+# DDD Context Mapper
 
 ## Description
 

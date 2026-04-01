@@ -97,6 +97,44 @@
             z-index: 1;
         }
 
+        .panel-list-filter-row {
+            flex-shrink: 0;
+            display: flex;
+            align-items: stretch;
+            gap: 6px;
+            padding: 8px 10px 10px;
+            background: #fafafa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .panel-list-filter-row input[type="search"] {
+            flex: 1;
+            min-width: 0;
+            font: inherit;
+            font-size: 13px;
+            padding: 6px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .panel-list-filter-row input[type="search"]::-webkit-search-decoration,
+        .panel-list-filter-row input[type="search"]::-webkit-search-cancel-button {
+            -webkit-appearance: none;
+        }
+
+        .panel button.panel-list-filter-clear {
+            flex-shrink: 0;
+            width: 34px;
+            min-width: 34px;
+            padding: 0;
+            margin: 0;
+            font-size: 18px;
+            line-height: 1;
+            font-weight: 600;
+            color: #555;
+        }
+
         .panel-tab-panes {
             flex: 1;
             min-height: 0;
@@ -548,6 +586,10 @@
                 <button type="button" class="panel-tab" role="tab" id="tab-contexts" aria-selected="true" aria-controls="panel-contexts-pane">Contexts</button>
                 <button type="button" class="panel-tab" role="tab" id="tab-relationships" aria-selected="false" aria-controls="panel-relationships-pane">Relationships</button>
             </div>
+            <div class="panel-list-filter-row" role="search">
+                <input type="search" id="panel-list-filter" placeholder="Filter by name…" autocomplete="off" spellcheck="false" aria-label="Filter contexts and relationships by name" />
+                <button type="button" id="btn-panel-list-filter-clear" class="panel-list-filter-clear" aria-label="Clear search">×</button>
+            </div>
             <div class="panel-tab-panes">
                 <div class="panel-tab-pane" id="panel-contexts-pane" role="tabpanel" aria-labelledby="tab-contexts">
                     <section class="panel-form-section" id="ctx-form-section" aria-label="Bounded context form">
@@ -765,6 +807,34 @@
             return [...data.nodes].sort((a, b) =>
                 nodeDisplayName(a).localeCompare(nodeDisplayName(b), undefined, { sensitivity: "base" })
             );
+        }
+
+        function listFilterQuery() {
+            const el = document.getElementById("panel-list-filter");
+            return el ? el.value.trim().toLowerCase() : "";
+        }
+
+        function textMatchesListFilter(text, q) {
+            if (!q) return true;
+            return String(text).toLowerCase().includes(q);
+        }
+
+        function nodeMatchesListFilter(n, q) {
+            if (!q) return true;
+            return textMatchesListFilter(nodeDisplayName(n), q)
+                || textMatchesListFilter(nodeTitleText(n), q)
+                || textMatchesListFilter(n.id, q);
+        }
+
+        function linkMatchesListFilter(l, q) {
+            if (!q) return true;
+            const sid = linkSourceId(l), tid = linkTargetId(l);
+            const ns = nodeById(sid), nt = nodeById(tid);
+            const dnS = ns ? nodeDisplayName(ns) : sid;
+            const dnT = nt ? nodeDisplayName(nt) : tid;
+            if (textMatchesListFilter(dnS, q) || textMatchesListFilter(dnT, q)) return true;
+            if (l.label && textMatchesListFilter(l.label, q)) return true;
+            return textMatchesListFilter(sid, q) || textMatchesListFilter(tid, q);
         }
 
         function newUuidV4() {
@@ -1516,22 +1586,26 @@
         }
 
         function refreshPanel() {
+            const q = listFilterQuery();
             const lc = document.getElementById("list-contexts");
-            lc.innerHTML = data.nodes.map(n => {
+            lc.innerHTML = data.nodes.filter(n => nodeMatchesListFilter(n, q)).map(n => {
                 const active = n.id === selectedNodeId ? " active" : "";
                 return `<div class="list-item${active}" data-node-id="${escapeHtml(n.id)}"><span class="item-main" title="${escapeHtml(nodeTitleText(n))}"><span class="item-title">${escapeHtml(nodeDisplayName(n))}</span><span class="item-sub">${escapeHtml(n.id)}</span></span><span class="mini"><button type="button" data-action="edit-node" data-id="${escapeHtml(n.id)}">Edit</button><button type="button" class="danger" data-action="del-node" data-id="${escapeHtml(n.id)}">Del</button></span></div>`;
             }).join("");
 
-            document.getElementById("list-rels").innerHTML = data.links.map((l, i) => {
-                const sid = linkSourceId(l), tid = linkTargetId(l);
-                const ns = nodeById(sid), nt = nodeById(tid);
-                const dnS = ns ? nodeDisplayName(ns) : sid;
-                const dnT = nt ? nodeDisplayName(nt) : tid;
-                const titleR = `${ns ? nodeTitleText(ns) : sid} → ${nt ? nodeTitleText(nt) : tid}` + (l.label ? ` — ${l.label}` : "");
-                const active = i === selectedLinkIndex ? " active" : "";
-                const relExtra = l.label ? `<span class="item-sub type-rel">${escapeHtml(l.label)}</span>` : "";
-                return `<div class="list-item${active}" data-link-idx="${i}"><span class="item-main" title="${escapeHtml(titleR)}"><span class="item-title">${escapeHtml(dnS)}<span class="list-rel-arrow">→</span>${escapeHtml(dnT)}</span>${relExtra}</span><span class="mini"><button type="button" data-action="edit-link" data-idx="${i}">Edit</button><button type="button" class="danger" data-action="del-link" data-idx="${i}">Del</button></span></div>`;
-            }).join("");
+            document.getElementById("list-rels").innerHTML = data.links
+                .map((l, i) => ({ l, i }))
+                .filter(({ l }) => linkMatchesListFilter(l, q))
+                .map(({ l, i }) => {
+                    const sid = linkSourceId(l), tid = linkTargetId(l);
+                    const ns = nodeById(sid), nt = nodeById(tid);
+                    const dnS = ns ? nodeDisplayName(ns) : sid;
+                    const dnT = nt ? nodeDisplayName(nt) : tid;
+                    const titleR = `${ns ? nodeTitleText(ns) : sid} → ${nt ? nodeTitleText(nt) : tid}` + (l.label ? ` — ${l.label}` : "");
+                    const active = i === selectedLinkIndex ? " active" : "";
+                    const relExtra = l.label ? `<span class="item-sub type-rel">${escapeHtml(l.label)}</span>` : "";
+                    return `<div class="list-item${active}" data-link-idx="${i}"><span class="item-main" title="${escapeHtml(titleR)}"><span class="item-title">${escapeHtml(dnS)}<span class="list-rel-arrow">→</span>${escapeHtml(dnT)}</span>${relExtra}</span><span class="mini"><button type="button" data-action="edit-link" data-idx="${i}">Edit</button><button type="button" class="danger" data-action="del-link" data-idx="${i}">Del</button></span></div>`;
+                }).join("");
 
             const opts = nodesSortedByDisplayName().map(n =>
                 `<option value="${escapeHtml(n.id)}" title="${escapeHtml(nodeTitleText(n))}">${escapeHtml(truncateText(nodeDisplayName(n), 76))}</option>`
@@ -1807,6 +1881,14 @@
         document.getElementById("tab-relationships").addEventListener("click", () => {
             setEditorPanelTab("relationships");
             refreshEditorForms();
+        });
+
+        document.getElementById("panel-list-filter").addEventListener("input", () => refreshPanel());
+        document.getElementById("btn-panel-list-filter-clear").addEventListener("click", () => {
+            const inp = document.getElementById("panel-list-filter");
+            inp.value = "";
+            inp.focus();
+            refreshPanel();
         });
 
         document.addEventListener("keydown", (e) => {

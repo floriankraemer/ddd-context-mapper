@@ -25,6 +25,7 @@ That makes the map useful for workshops, documentation, and versioning in git al
 - **Auto (re)arrange** runs a layout algorithm when you want a fresh placement.
 - **Export JSON** downloads a snapshot; **Import JSON** loads one. Imports are validated against `context-map.schema.json` when the page is served so the schema file can be fetched (for example via a local HTTP server). On plain `file://` opens, validation may be skipped with a console warning.
 - **JSON format** is documented by `context-map.schema.json` (version, `nodes`, `links`, optional `view` for zoom/pan, timestamps on export).
+- **Export the diagram as image** when you want to share it easily.
 
 ## Quick start
 

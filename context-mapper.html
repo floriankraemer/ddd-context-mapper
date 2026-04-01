@@ -679,6 +679,7 @@
                 <button type="button" id="btn-clear-board">Clear board</button>
                 <button type="button" id="btn-export">Export JSON</button>
                 <button type="button" id="btn-import">Import JSON…</button>
+                                <button type="button" id="btn-export-image">Export Image</button>
                 <button type="button" id="btn-help" class="toolbar-help" aria-label="Help" title="Help">?</button>
                 <input type="file" id="import-file" accept=".json,application/json" hidden />
             </div>
@@ -1399,6 +1400,137 @@
             URL.revokeObjectURL(a.href);
         }
 
+        const EXPORT_IMAGE_SVG_STYLES = `
+.node ellipse { stroke: #000; stroke-width: 2.5px; }
+.node.node--selected ellipse { stroke: #06c; stroke-width: 3px; }
+.node text { font-size: 13px; font-weight: 700; text-anchor: middle; pointer-events: none;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.link { fill: none; stroke: #000; stroke-width: 1.5px; pointer-events: none; }
+.link.link--selected { stroke: #06c; stroke-width: 2.5px; }
+.edge-box { fill: #fff; stroke: #000; stroke-width: 1.2px; }
+.edge-text { font-size: 10px; font-weight: 800; text-anchor: middle; dominant-baseline: middle; pointer-events: none;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.label-ud { font-size: 11px; font-weight: bold; font-family: ui-monospace, monospace; fill: #000; pointer-events: none; }
+.rel-label { font-size: 11px; font-style: italic; text-anchor: middle; fill: #444; pointer-events: none;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+`;
+
+        function cloneDiagramLayerForExport() {
+            const layer = zoomLayer.node();
+            const cloneRoot = layer.cloneNode(true);
+            cloneRoot.removeAttribute("transform");
+            cloneRoot.querySelector(".zoom-bg")?.remove();
+            cloneRoot.querySelector(".link-hit-layer")?.remove();
+            return cloneRoot;
+        }
+
+        function diagramExportBounds() {
+            const svgNS = "http://www.w3.org/2000/svg";
+            const cloneRoot = cloneDiagramLayerForExport();
+            const tmpSvg = document.createElementNS(svgNS, "svg");
+            tmpSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            tmpSvg.style.cssText = "position:absolute;left:-10000px;top:0;width:8000px;height:8000px;visibility:hidden;pointer-events:none";
+            tmpSvg.appendChild(cloneRoot);
+            document.body.appendChild(tmpSvg);
+            let bbox;
+            try {
+                bbox = cloneRoot.getBBox();
+            } finally {
+                document.body.removeChild(tmpSvg);
+            }
+            return bbox;
+        }
+
+        function exportDiagramImage() {
+            if (!data.nodes.length) {
+                alert("Nothing to export — add at least one bounded context.");
+                return;
+            }
+            ticked();
+
+            const bbox = diagramExportBounds();
+            if (!bbox || !Number.isFinite(bbox.width) || !Number.isFinite(bbox.height) || bbox.width < 1 || bbox.height < 1) {
+                alert("Could not compute diagram bounds.");
+                return;
+            }
+
+            const pad = 48;
+            const vbX = bbox.x - pad;
+            const vbY = bbox.y - pad;
+            const vbW = bbox.width + 2 * pad;
+            const vbH = bbox.height + 2 * pad;
+
+            const svgNS = "http://www.w3.org/2000/svg";
+            const exportClone = cloneDiagramLayerForExport();
+
+            const outSvg = document.createElementNS(svgNS, "svg");
+            outSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            outSvg.setAttribute("viewBox", `${vbX} ${vbY} ${vbW} ${vbH}`);
+            outSvg.setAttribute("width", String(vbW));
+            outSvg.setAttribute("height", String(vbH));
+
+            const defs = document.createElementNS(svgNS, "defs");
+            const styleEl = document.createElementNS(svgNS, "style");
+            styleEl.setAttribute("type", "text/css");
+            styleEl.textContent = EXPORT_IMAGE_SVG_STYLES;
+            defs.appendChild(styleEl);
+            outSvg.appendChild(defs);
+
+            const bg = document.createElementNS(svgNS, "rect");
+            bg.setAttribute("fill", "#ffffff");
+            bg.setAttribute("x", String(vbX));
+            bg.setAttribute("y", String(vbY));
+            bg.setAttribute("width", String(vbW));
+            bg.setAttribute("height", String(vbH));
+            outSvg.appendChild(bg);
+
+            outSvg.appendChild(exportClone);
+
+            const serializer = new XMLSerializer();
+            const source = serializer.serializeToString(outSvg);
+            const svgBlob = new Blob([source], { type: "image/svg+xml;charset=utf-8" });
+            const url = URL.createObjectURL(svgBlob);
+
+            const img = new Image();
+            img.onload = () => {
+                URL.revokeObjectURL(url);
+                const maxCanvas = 8192;
+                let scale = 2;
+                let outW = vbW * scale;
+                let outH = vbH * scale;
+                if (outW > maxCanvas || outH > maxCanvas) {
+                    scale = maxCanvas / Math.max(vbW, vbH);
+                    outW = vbW * scale;
+                    outH = vbH * scale;
+                }
+
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.max(1, Math.round(outW));
+                canvas.height = Math.max(1, Math.round(outH));
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                canvas.toBlob(blob => {
+                    if (!blob) {
+                        alert("Could not create PNG image.");
+                        return;
+                    }
+                    const a = document.createElement("a");
+                    a.href = URL.createObjectURL(blob);
+                    a.download = "context-map.png";
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                }, "image/png");
+            };
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                alert("Could not render diagram as image.");
+            };
+            img.src = url;
+        }
+
         function validateSnapshotSemantics(json) {
             if (!json || typeof json !== "object" || Array.isArray(json)) {
                 throw new Error("Invalid snapshot: root must be a JSON object.");
@@ -2060,6 +2192,7 @@
         document.getElementById("btn-regenerate").addEventListener("click", regenerateLayout);
         document.getElementById("btn-clear-board").addEventListener("click", clearBoard);
         document.getElementById("btn-export").addEventListener("click", exportDiagram);
+        document.getElementById("btn-export-image").addEventListener("click", exportDiagramImage);
         document.getElementById("btn-import").addEventListener("click", () => {
             document.getElementById("import-file").click();
         });

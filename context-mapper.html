@@ -1462,6 +1462,34 @@
             simulation.alpha(0.001).restart();
         }
 
+        /** Pan so world (wx, wy) is at the viewport center; zoom scale k is unchanged. */
+        function centerWorkspaceOnWorld(wx, wy) {
+            if (!Number.isFinite(wx) || !Number.isFinite(wy)) return;
+            const cur = d3.zoomTransform(svg.node());
+            const k = cur.k;
+            const w = +svg.attr("width") || width;
+            const h = +svg.attr("height") || height;
+            const tx = w / 2 - k * wx;
+            const ty = h / 2 - k * wy;
+            svg.call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
+        }
+
+        function centerWorkspaceOnNode(nodeId) {
+            const n = nodeById(nodeId);
+            if (!n || !Number.isFinite(n.x) || !Number.isFinite(n.y)) return;
+            centerWorkspaceOnWorld(n.x, n.y);
+        }
+
+        function centerWorkspaceOnLink(linkIndex) {
+            const l = data.links[linkIndex];
+            if (!l) return;
+            let s = l.source, t = l.target;
+            if (typeof s !== "object") s = nodeById(s);
+            if (typeof t !== "object") t = nodeById(t);
+            if (!s || !t || !Number.isFinite(s.x) || !Number.isFinite(t.x)) return;
+            centerWorkspaceOnWorld((s.x + t.x) / 2, (s.y + t.y) / 2);
+        }
+
         function clearSelection() {
             selectedNodeId = null;
             selectedLinkIndex = -1;
@@ -1737,6 +1765,7 @@
             const t = e.target;
             if (t.dataset.action === "edit-node") {
                 selectNode(t.dataset.id);
+                centerWorkspaceOnNode(t.dataset.id);
                 return;
             }
             if (t.dataset.action === "del-node") {
@@ -1744,13 +1773,19 @@
                 return;
             }
             const row = t.closest(".list-item");
-            if (row && row.dataset.nodeId) selectNode(row.dataset.nodeId);
+            if (row && row.dataset.nodeId) {
+                const id = row.dataset.nodeId;
+                selectNode(id);
+                centerWorkspaceOnNode(id);
+            }
         });
 
         document.getElementById("list-rels").addEventListener("click", (e) => {
             const t = e.target;
             if (t.dataset.action === "edit-link") {
-                selectLink(+t.dataset.idx);
+                const idx = +t.dataset.idx;
+                selectLink(idx);
+                centerWorkspaceOnLink(idx);
                 return;
             }
             if (t.dataset.action === "del-link") {
@@ -1758,7 +1793,11 @@
                 return;
             }
             const row = t.closest(".list-item");
-            if (row && row.dataset.linkIdx != null) selectLink(+row.dataset.linkIdx);
+            if (row && row.dataset.linkIdx != null) {
+                const idx = +row.dataset.linkIdx;
+                selectLink(idx);
+                centerWorkspaceOnLink(idx);
+            }
         });
 
         document.getElementById("tab-contexts").addEventListener("click", () => {
